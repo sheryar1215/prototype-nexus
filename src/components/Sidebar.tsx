@@ -3,6 +3,17 @@ import { Home, BookOpen, Settings, LogOut } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const menuItems = [
   { icon: Home, label: "Home", path: "/" },
@@ -50,13 +61,26 @@ export const Sidebar = () => {
           ))}
         </ul>
         <div className="mt-auto">
-          <button
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-destructive transition-all duration-200 hover:bg-destructive/10"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Logout</span>
-          </button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-destructive transition-all duration-200 hover:bg-destructive/10">
+                <LogOut className="h-5 w-5" />
+                <span>Logout</span>
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You will need to sign in again to access your account.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout}>Logout</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </nav>
     </aside>
