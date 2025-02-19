@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { PlusCircle, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface PlaybookFormData {
   title: string;
@@ -30,6 +31,7 @@ const Playbook = () => {
   });
   const { toast } = useToast();
   const { session } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,20 +48,17 @@ const Playbook = () => {
     try {
       setLoading(true);
 
-      // Insert the playbook data into Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("playbooks")
         .insert({
           title: formData.title,
           description: formData.description,
           product_name: formData.productName,
           target_audience: formData.targetAudience,
-          key_features: formData.keyFeatures,
-          benefits: formData.benefits,
+          key_features: formData.keyFeatures.filter(f => f.trim() !== ""),
+          benefits: formData.benefits.filter(b => b.trim() !== ""),
           user_id: session.user.id,
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
 
@@ -77,6 +76,9 @@ const Playbook = () => {
         keyFeatures: [""],
         benefits: [""],
       });
+
+      // Navigate to the dashboard or playbooks list
+      navigate("/");
     } catch (error: any) {
       toast({
         title: "Error",
