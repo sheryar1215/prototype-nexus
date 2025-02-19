@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -64,9 +63,11 @@ const Index = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       // Start the conversation session with the required configuration
-      await conversation.startSession({
+      const sessionResponse = await conversation.startSession({
         agentId: "default", // Use the default agent ID
       });
+      
+      console.log("Session started successfully:", sessionResponse);
       
       toast({
         title: "Conversation Started",
@@ -77,14 +78,20 @@ const Index = () => {
       return true;
     } catch (error: any) {
       console.error("Start conversation error:", error);
+      console.error("Error details:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        isTrusted: error?.isTrusted
+      });
       
       let errorMessage = "Failed to start conversation. ";
       if (error?.name === "NotAllowedError") {
         errorMessage += "Please allow microphone access to continue.";
       } else if (typeof error?.message === 'string' && error.message.toLowerCase().includes("api key")) {
-        errorMessage += "Please check your ElevenLabs API key.";
+        errorMessage += "Please check your ElevenLabs API key and try again.";
       } else {
-        errorMessage += (error?.message || "Unknown error occurred");
+        errorMessage += (error?.message || "Please ensure you have set up your ElevenLabs API key correctly.");
       }
       
       toast({
