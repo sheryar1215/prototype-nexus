@@ -79,12 +79,12 @@ const Index = () => {
       console.error("Start conversation error:", error);
       
       let errorMessage = "Failed to start conversation. ";
-      if (error.name === "NotAllowedError") {
+      if (error?.name === "NotAllowedError") {
         errorMessage += "Please allow microphone access to continue.";
-      } else if (error.message.includes("API key")) {
+      } else if (typeof error?.message === 'string' && error.message.toLowerCase().includes("api key")) {
         errorMessage += "Please check your ElevenLabs API key.";
       } else {
-        errorMessage += error.message;
+        errorMessage += (error?.message || "Unknown error occurred");
       }
       
       toast({
