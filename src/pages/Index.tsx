@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, MicOff, PlayCircle, Settings } from "lucide-react";
+import { Mic, MicOff, PlayCircle } from "lucide-react";
+import "../lib/elevenlabs"; // Import the initialization
 
 const scenarios = [
   {
