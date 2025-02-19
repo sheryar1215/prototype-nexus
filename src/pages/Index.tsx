@@ -63,8 +63,10 @@ const Index = () => {
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Start the conversation session
-      await conversation.startSession();
+      // Start the conversation session with the required configuration
+      await conversation.startSession({
+        agentId: "default", // Use the default agent ID
+      });
       
       toast({
         title: "Conversation Started",
