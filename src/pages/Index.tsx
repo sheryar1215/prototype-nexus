@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, MicOff, PlayCircle } from "lucide-react";
-import "../lib/elevenlabs"; // Import the initialization
+import "../lib/elevenlabs";
 
 const scenarios = [
   {
@@ -29,6 +30,7 @@ const Index = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState(scenarios[0]);
   const { toast } = useToast();
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const conversation = useConversation({
     overrides: {
@@ -42,59 +44,89 @@ const Index = () => {
         language: "en",
       },
       tts: {
-        voiceId: "ErXwobaYiN019PkySvjV" // Using a professional voice
+        voiceId: "ErXwobaYiN019PkySvjV" // Professional voice
       },
     },
     onError: (error) => {
+      console.error("Conversation error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: "Failed to start conversation. Please check your API key and try again.",
       });
+      setIsRecording(false);
     },
   });
 
   const startConversation = async () => {
     try {
       // Request microphone access
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      await conversation.startSession({
-        agentId: "sales-coach", // Replace with your ElevenLabs agent ID
-      });
+      // Start the conversation session
+      await conversation.startSession();
       
       toast({
         title: "Conversation Started",
         description: "You can now begin the sales practice scenario.",
       });
+      
+      setIsInitialized(true);
+      return true;
     } catch (error: any) {
+      console.error("Start conversation error:", error);
+      
+      let errorMessage = "Failed to start conversation. ";
+      if (error.name === "NotAllowedError") {
+        errorMessage += "Please allow microphone access to continue.";
+      } else if (error.message.includes("API key")) {
+        errorMessage += "Please check your ElevenLabs API key.";
+      } else {
+        errorMessage += error.message;
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to start conversation",
+        description: errorMessage,
       });
+      return false;
     }
   };
 
   const toggleRecording = async () => {
     if (!isRecording) {
-      await startConversation();
+      const success = await startConversation();
+      if (success) {
+        setIsRecording(true);
+      }
     } else {
-      await conversation.endSession();
-      toast({
-        title: "Practice Session Ended",
-        description: "Your sales practice session has ended.",
-      });
+      try {
+        await conversation.endSession();
+        setIsRecording(false);
+        setIsInitialized(false);
+        toast({
+          title: "Practice Session Ended",
+          description: "Your sales practice session has ended.",
+        });
+      } catch (error: any) {
+        console.error("End conversation error:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to end conversation properly.",
+        });
+      }
     }
-    setIsRecording(!isRecording);
   };
 
   useEffect(() => {
-    // Cleanup on component unmount
     return () => {
-      conversation.endSession();
+      if (isInitialized) {
+        conversation.endSession();
+      }
     };
-  }, []);
+  }, [isInitialized, conversation]);
 
   return (
     <div className="min-h-screen">
