@@ -34,25 +34,17 @@ const Index = () => {
   const [apiKeyValid, setApiKeyValid] = useState(false);
 
   useEffect(() => {
-    const checkApiKey = async () => {
-      try {
-        const apiKey = initializeElevenLabs();
-        // Validate API key length
-        if (apiKey && apiKey.length > 20) {
-          setApiKeyValid(true);
-        } else {
-          throw new Error("Invalid API key format");
-        }
-      } catch (error) {
-        setApiKeyValid(false);
-        toast({
-          variant: "destructive",
-          title: "API Key Error",
-          description: "Please set up your ElevenLabs API key in Settings to use the conversation feature.",
-        });
-      }
-    };
-    checkApiKey();
+    try {
+      initializeElevenLabs();
+      setApiKeyValid(true);
+    } catch (error) {
+      setApiKeyValid(false);
+      toast({
+        variant: "destructive",
+        title: "API Key Error",
+        description: "Please set up your ElevenLabs API key in Settings to use the conversation feature.",
+      });
+    }
   }, [toast]);
 
   const conversation = useConversation({
@@ -94,12 +86,7 @@ const Index = () => {
 
     try {
       // Request microphone access before starting the session
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (!stream) {
-        throw new Error("Microphone access not granted");
-      }
-      
-      console.log("Starting conversation with agent ID:", ELEVENLABS_AGENT_ID);
+      await navigator.mediaDevices.getUserMedia({ audio: true });
       
       // Start the conversation session
       await conversation.startSession({
@@ -126,7 +113,7 @@ const Index = () => {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to start conversation. Please make sure your API key is correct and try again.",
+          description: "Failed to start conversation. Please try again.",
         });
       }
       return false;
