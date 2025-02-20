@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -37,8 +36,10 @@ const Index = () => {
     const checkApiKey = async () => {
       try {
         const apiKey = initializeElevenLabs();
+        console.log("API Key validation successful");
         setApiKeyValid(true);
       } catch (error: any) {
+        console.error("API Key validation failed:", error);
         setApiKeyValid(false);
         toast({
           variant: "destructive",
@@ -89,14 +90,14 @@ const Index = () => {
     }
 
     try {
-      // Request microphone access before starting the session
+      console.log("Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (!stream) {
-        throw new Error("Microphone access not granted");
-      }
       
-      // Start the conversation session with the required agentId
-      await conversation.startSession({ agentId: ELEVENLABS_AGENT_ID });
+      console.log("Starting conversation session...");
+      // Start the conversation with the required configuration
+      await conversation.startSession({
+        agentId: ELEVENLABS_AGENT_ID,
+      });
       
       toast({
         title: "Conversation Started",
@@ -105,7 +106,7 @@ const Index = () => {
       
       setIsInitialized(true);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Start conversation error:", error);
       
       if (error instanceof DOMException && error.name === "NotAllowedError") {
@@ -118,7 +119,7 @@ const Index = () => {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to start conversation. Please make sure your API key is correct and try again.",
+          description: `Failed to start conversation: ${error.message}`,
         });
       }
       return false;
