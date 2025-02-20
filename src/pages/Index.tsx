@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, MicOff, PlayCircle } from "lucide-react";
-import { initializeElevenLabs, ELEVENLABS_MODEL_ID, ELEVENLABS_VOICE_ID } from "../lib/elevenlabs";
+import { initializeElevenLabs, ELEVENLABS_MODEL_ID, ELEVENLABS_VOICE_ID, ELEVENLABS_URL } from "../lib/elevenlabs";
 
 const scenarios = [
   {
@@ -138,7 +138,7 @@ const Index = () => {
       
       console.log("Starting new session...");
       await conversation.startSession({
-        model: ELEVENLABS_MODEL_ID,
+        url: `${ELEVENLABS_URL}${ELEVENLABS_VOICE_ID}`,
       });
       
       return true;

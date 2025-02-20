@@ -23,4 +23,5 @@ export const initializeElevenLabs = async () => {
 // Using a stable model for voice generation
 export const ELEVENLABS_MODEL_ID = "eleven_multilingual_v2";
 export const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel voice
+export const ELEVENLABS_URL = "wss://api.elevenlabs.io/v1/text-to-speech/";
 
