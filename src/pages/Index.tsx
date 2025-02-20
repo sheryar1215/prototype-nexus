@@ -36,10 +36,9 @@ const Index = () => {
     overrides: {
       agent: {
         prompt: {
-          prompt: `You are an experienced sales coach. You are helping a salesperson practice ${selectedScenario.title}. 
-          Provide constructive feedback and guidance based on their responses.`,
+          prompt: `You are an experienced sales coach helping with ${selectedScenario.title}.`,
         },
-        firstMessage: `Let's practice ${selectedScenario.title}. I'll play the role of a potential customer, and you'll be the salesperson.`,
+        firstMessage: "Hello! I'm your sales coach. Let's start practicing.",
         language: "en",
       },
       tts: {
@@ -52,7 +51,6 @@ const Index = () => {
     const checkApiKey = async () => {
       try {
         initializeElevenLabs();
-        console.log("API Key validation successful");
         setApiKeyValid(true);
       } catch (error: any) {
         console.error("API Key validation failed:", error);
@@ -60,7 +58,7 @@ const Index = () => {
         toast({
           variant: "destructive",
           title: "API Key Error",
-          description: error.message || "Please check your ElevenLabs API key in Settings.",
+          description: "Please check your ElevenLabs API key in Settings.",
         });
       }
     };
@@ -72,41 +70,34 @@ const Index = () => {
       toast({
         variant: "destructive",
         title: "API Key Required",
-        description: "Please set up a valid ElevenLabs API key in Settings first.",
+        description: "Please add your ElevenLabs API key in Settings first.",
       });
       return false;
     }
 
     try {
-      console.log("Starting conversation...");
-      
-      // First request microphone access
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Initialize the conversation with the required config
-      const options = {
+      await conversation.startSession({
         agentId: ELEVENLABS_AGENT_ID,
-      };
-      
-      console.log("Starting session with options:", options);
-      await conversation.startSession(options);
+      });
       
       setIsInitialized(true);
       return true;
     } catch (error: any) {
-      console.error("Conversation error:", error);
+      console.error("Start error:", error);
       
-      if (error instanceof DOMException && error.name === "NotAllowedError") {
+      if (error.name === "NotAllowedError") {
         toast({
           variant: "destructive",
-          title: "Microphone Access Denied",
+          title: "Microphone Required",
           description: "Please allow microphone access to use this feature.",
         });
       } else {
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Failed to start conversation. Please try again.",
+          title: "Connection Error",
+          description: "Could not connect to ElevenLabs. Please check your API key.",
         });
       }
       return false;
@@ -124,13 +115,8 @@ const Index = () => {
         await conversation.endSession();
         setIsRecording(false);
         setIsInitialized(false);
-      } catch (error: any) {
-        console.error("End conversation error:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to end conversation properly.",
-        });
+      } catch (error) {
+        console.error("End error:", error);
       }
     }
   };
@@ -151,7 +137,7 @@ const Index = () => {
         <div className="glass rounded-lg p-6">
           <h1 className="text-3xl font-semibold">Sales Practice Coach</h1>
           <p className="mt-4 text-muted-foreground">
-            Practice your sales skills with our AI-powered coach. Choose a scenario and start practicing.
+            Practice your sales skills with our AI-powered coach.
           </p>
 
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
