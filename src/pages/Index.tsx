@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, MicOff, PlayCircle } from "lucide-react";
-import { initializeElevenLabs, ELEVENLABS_AGENT_ID, ELEVENLABS_VOICE_ID } from "../lib/elevenlabs";
+import { initializeElevenLabs, ELEVENLABS_MODEL_ID, ELEVENLABS_VOICE_ID } from "../lib/elevenlabs";
 
 const scenarios = [
   {
@@ -69,7 +68,7 @@ const Index = () => {
         voiceId: ELEVENLABS_VOICE_ID,
         stability: 0.8,
         similarityBoost: 0.8,
-        modelId: ELEVENLABS_AGENT_ID
+        modelId: ELEVENLABS_MODEL_ID
       },
     },
   });
@@ -98,7 +97,7 @@ const Index = () => {
   const requestMicrophonePermission = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => track.stop()); // Clean up the stream
+      stream.getTracks().forEach(track => track.stop());
       return true;
     } catch (error: any) {
       console.error("Microphone permission error:", error);
@@ -131,15 +130,15 @@ const Index = () => {
         return false;
       }
 
-      // End any existing session and wait for cleanup
+      // Clean up any existing session
       if (isInitialized) {
         await conversation.endSession().catch(() => {});
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      console.log("Starting new session with agent ID:", ELEVENLABS_AGENT_ID);
+      console.log("Starting new session...");
       await conversation.startSession({
-        agentId: ELEVENLABS_AGENT_ID,
+        model: ELEVENLABS_MODEL_ID,
       });
       
       return true;

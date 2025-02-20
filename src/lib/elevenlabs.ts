@@ -20,8 +20,7 @@ export const initializeElevenLabs = async () => {
   return apiKey;
 };
 
-// Using the stable model for more reliable connections
-export const ELEVENLABS_AGENT_ID = "eleven_multilingual_v2";
+// Using a stable model for voice generation
+export const ELEVENLABS_MODEL_ID = "eleven_multilingual_v2";
 export const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel voice
-
 
