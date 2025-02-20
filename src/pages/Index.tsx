@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -68,7 +69,7 @@ const Index = () => {
         voiceId: ELEVENLABS_VOICE_ID,
         stability: 0.8,
         similarityBoost: 0.8,
-        modelId: "eleven_multilingual_v2"
+        modelId: ELEVENLABS_AGENT_ID
       },
     },
   });
@@ -94,25 +95,47 @@ const Index = () => {
     checkApiKey();
   }, [checkApiKey]);
 
+  const requestMicrophonePermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop()); // Clean up the stream
+      return true;
+    } catch (error: any) {
+      console.error("Microphone permission error:", error);
+      toast({
+        variant: "destructive",
+        title: "Microphone Required",
+        description: "Please allow microphone access to use this feature.",
+      });
+      return false;
+    }
+  };
+
   const startConversation = async () => {
     if (isConnecting) return false;
     
     try {
       setIsConnecting(true);
       
+      // Check microphone permission first
+      const hasMicPermission = await requestMicrophonePermission();
+      if (!hasMicPermission) {
+        setIsConnecting(false);
+        return false;
+      }
+      
+      // Then check API key
       const isKeyValid = await checkApiKey();
       if (!isKeyValid) {
         setIsConnecting(false);
         return false;
       }
 
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+      // End any existing session and wait for cleanup
       if (isInitialized) {
         await conversation.endSession().catch(() => {});
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
       
       console.log("Starting new session with agent ID:", ELEVENLABS_AGENT_ID);
       await conversation.startSession({
@@ -123,20 +146,11 @@ const Index = () => {
     } catch (error: any) {
       console.error("Start conversation error:", error);
       setIsConnecting(false);
-      
-      if (error.name === "NotAllowedError") {
-        toast({
-          variant: "destructive",
-          title: "Microphone Access Required",
-          description: "Please allow microphone access to use this feature.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Connection Error",
-          description: error.message || "Could not connect to ElevenLabs. Please try again.",
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Could not connect to ElevenLabs. Please try again.",
+      });
       return false;
     }
   };

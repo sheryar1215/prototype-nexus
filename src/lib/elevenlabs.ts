@@ -24,3 +24,4 @@ export const initializeElevenLabs = async () => {
 export const ELEVENLABS_AGENT_ID = "eleven_multilingual_v2";
 export const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel voice
 
+
