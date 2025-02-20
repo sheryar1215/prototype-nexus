@@ -8,9 +8,9 @@ export const initializeElevenLabs = () => {
   // Log the first two characters to help debug (we won't show the whole key for security)
   console.log("API Key starts with:", apiKey.substring(0, 2));
   
-  // Validate API key format (must start with "11" and be at least 32 characters)
-  if (!apiKey.startsWith("11")) {
-    throw new Error("Invalid ElevenLabs API key format. Your key starts with '" + apiKey.substring(0, 2) + "' but it should start with '11'. Please make sure you're using an ElevenLabs API key from elevenlabs.io.");
+  // Validate API key format (must start with either "11" or "sk" and be at least 32 characters)
+  if (!apiKey.startsWith("11") && !apiKey.startsWith("sk")) {
+    throw new Error("Invalid ElevenLabs API key format. Your key starts with '" + apiKey.substring(0, 2) + "' but it should start with either '11' or 'sk'. Please make sure you're using a valid ElevenLabs API key from elevenlabs.io.");
   }
   
   if (apiKey.length < 32) {
