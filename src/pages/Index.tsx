@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -54,7 +53,7 @@ const Index = () => {
       toast({
         variant: "destructive",
         title: "Connection Error",
-        description: "Lost connection to ElevenLabs. Please try again.",
+        description: error?.message || "Could not connect to ElevenLabs. Please try again in a moment.",
       });
     },
     overrides: {
@@ -67,27 +66,25 @@ const Index = () => {
       },
       tts: {
         voiceId: ELEVENLABS_VOICE_ID,
-        stability: 0.5,
-        similarityBoost: 0.5,
+        stability: 0.8,
+        similarityBoost: 0.8,
+        modelId: "eleven_multilingual_v2"
       },
     },
   });
 
   const checkApiKey = useCallback(async () => {
     try {
-      const apiKey = initializeElevenLabs();
-      if (apiKey) {
-        setApiKeyValid(true);
-        return true;
-      }
-      return false;
+      const apiKey = await initializeElevenLabs();
+      setApiKeyValid(true);
+      return true;
     } catch (error: any) {
       console.error("API Key validation failed:", error);
       setApiKeyValid(false);
       toast({
         variant: "destructive",
-        title: "API Key Required",
-        description: "Please add your ElevenLabs API key in Settings.",
+        title: "API Key Error",
+        description: error.message,
       });
       return false;
     }
@@ -101,46 +98,43 @@ const Index = () => {
     if (isConnecting) return false;
     
     try {
-      // First check API key
+      setIsConnecting(true);
+      
       const isKeyValid = await checkApiKey();
       if (!isKeyValid) {
+        setIsConnecting(false);
         return false;
       }
 
-      setIsConnecting(true);
-
-      // Ensure we have microphone access
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Reset any existing session
       if (isInitialized) {
         await conversation.endSession().catch(() => {});
       }
       
-      // Add a small delay to ensure cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      console.log("Starting session with agent ID:", ELEVENLABS_AGENT_ID);
+      console.log("Starting new session with agent ID:", ELEVENLABS_AGENT_ID);
       await conversation.startSession({
         agentId: ELEVENLABS_AGENT_ID,
       });
       
       return true;
     } catch (error: any) {
-      console.error("Start error:", error);
+      console.error("Start conversation error:", error);
       setIsConnecting(false);
       
       if (error.name === "NotAllowedError") {
         toast({
           variant: "destructive",
-          title: "Microphone Required",
+          title: "Microphone Access Required",
           description: "Please allow microphone access to use this feature.",
         });
       } else {
         toast({
           variant: "destructive",
           title: "Connection Error",
-          description: "Could not connect to ElevenLabs. Please try again in a moment.",
+          description: error.message || "Could not connect to ElevenLabs. Please try again.",
         });
       }
       return false;
@@ -155,7 +149,6 @@ const Index = () => {
       }
     } else {
       try {
-        setIsConnecting(true);
         await conversation.endSession();
       } catch (error) {
         console.error("End session error:", error);
