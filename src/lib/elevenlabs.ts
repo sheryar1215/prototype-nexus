@@ -9,6 +9,6 @@ export const initializeElevenLabs = () => {
   return apiKey;
 };
 
-// Using more stable configurations
+// Using most stable configuration for speech to speech model
 export const ELEVENLABS_AGENT_ID = "eleven_english_sts_v2";
-export const ELEVENLABS_VOICE_ID = "pNInz6obpgDQGcFmaJgB"; // Adam voice
+export const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel voice - most stable option

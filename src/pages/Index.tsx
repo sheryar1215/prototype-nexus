@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -43,8 +44,8 @@ const Index = () => {
       },
       tts: {
         voiceId: ELEVENLABS_VOICE_ID,
-        stability: 0.5,
-        similarityBoost: 0.75,
+        stability: 0.7,
+        similarityBoost: 0.7,
       },
     },
   });
@@ -52,9 +53,9 @@ const Index = () => {
   useEffect(() => {
     const checkApiKey = async () => {
       try {
-        const key = initializeElevenLabs();
-        if (!key.startsWith("")) {
-          throw new Error("Invalid API key format");
+        const apiKey = initializeElevenLabs();
+        if (!apiKey) {
+          throw new Error("API key is missing");
         }
         setApiKeyValid(true);
       } catch (error: any) {
@@ -81,8 +82,12 @@ const Index = () => {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // First ensure we have microphone access
+      await navigator.mediaDevices.getUserMedia({ audio: true });
       
+      console.log("Starting session with agent ID:", ELEVENLABS_AGENT_ID);
+      
+      // Initialize the conversation
       await conversation.startSession({
         agentId: ELEVENLABS_AGENT_ID,
       });
