@@ -34,6 +34,17 @@ const Index = () => {
   const [apiKeyValid, setApiKeyValid] = useState(false);
 
   const conversation = useConversation({
+    onConnect: () => {
+      console.log("Connected to ElevenLabs");
+    },
+    onError: (error) => {
+      console.error("ElevenLabs error:", error);
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Lost connection to ElevenLabs. Please try again.",
+      });
+    },
     overrides: {
       agent: {
         prompt: {
@@ -44,8 +55,8 @@ const Index = () => {
       },
       tts: {
         voiceId: ELEVENLABS_VOICE_ID,
-        stability: 0.7,
-        similarityBoost: 0.7,
+        stability: 0.5,
+        similarityBoost: 0.5,
       },
     },
   });
@@ -54,10 +65,9 @@ const Index = () => {
     const checkApiKey = async () => {
       try {
         const apiKey = initializeElevenLabs();
-        if (!apiKey) {
-          throw new Error("API key is missing");
+        if (apiKey) {
+          setApiKeyValid(true);
         }
-        setApiKeyValid(true);
       } catch (error: any) {
         console.error("API Key validation failed:", error);
         setApiKeyValid(false);
@@ -107,7 +117,7 @@ const Index = () => {
         toast({
           variant: "destructive",
           title: "Connection Error",
-          description: "Could not connect to ElevenLabs. Please check your API key and try again.",
+          description: "Could not connect to ElevenLabs. Please try again in a moment.",
         });
       }
       return false;

@@ -9,6 +9,6 @@ export const initializeElevenLabs = () => {
   return apiKey;
 };
 
-// Using most stable configuration for speech to speech model
-export const ELEVENLABS_AGENT_ID = "eleven_english_sts_v2";
-export const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel voice - most stable option
+// Using English-only turbo model which has better connection reliability
+export const ELEVENLABS_AGENT_ID = "eleven_turbo_v2";
+export const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel voice
