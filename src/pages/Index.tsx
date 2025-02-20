@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
@@ -31,21 +32,25 @@ const Index = () => {
   const { toast } = useToast();
   const [isInitialized, setIsInitialized] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const conversation = useConversation({
     onConnect: () => {
       console.log("Connected to ElevenLabs");
       setIsInitialized(true);
+      setIsConnecting(false);
     },
     onDisconnect: () => {
       console.log("Disconnected from ElevenLabs");
       setIsInitialized(false);
       setIsRecording(false);
+      setIsConnecting(false);
     },
     onError: (error) => {
       console.error("ElevenLabs error:", error);
       setIsRecording(false);
       setIsInitialized(false);
+      setIsConnecting(false);
       toast({
         variant: "destructive",
         title: "Connection Error",
@@ -62,33 +67,38 @@ const Index = () => {
       },
       tts: {
         voiceId: ELEVENLABS_VOICE_ID,
-        stability: 0.7,
-        similarityBoost: 0.7,
+        stability: 0.8,
+        similarityBoost: 0.8,
       },
     },
   });
 
-  useEffect(() => {
-    const checkApiKey = async () => {
-      try {
-        const apiKey = initializeElevenLabs();
-        if (apiKey) {
-          setApiKeyValid(true);
-        }
-      } catch (error: any) {
-        console.error("API Key validation failed:", error);
-        setApiKeyValid(false);
-        toast({
-          variant: "destructive",
-          title: "API Key Error",
-          description: "Please check your ElevenLabs API key in Settings.",
-        });
+  const checkApiKey = useCallback(async () => {
+    try {
+      const apiKey = initializeElevenLabs();
+      if (apiKey) {
+        setApiKeyValid(true);
+        return true;
       }
-    };
-    checkApiKey();
+      return false;
+    } catch (error: any) {
+      console.error("API Key validation failed:", error);
+      setApiKeyValid(false);
+      toast({
+        variant: "destructive",
+        title: "API Key Error",
+        description: "Please check your ElevenLabs API key in Settings.",
+      });
+      return false;
+    }
   }, [toast]);
 
+  useEffect(() => {
+    checkApiKey();
+  }, [checkApiKey]);
+
   const startConversation = async () => {
+    if (isConnecting) return false;
     if (!apiKeyValid) {
       toast({
         variant: "destructive",
@@ -98,12 +108,17 @@ const Index = () => {
       return false;
     }
 
+    setIsConnecting(true);
+
     try {
       // First ensure we have microphone access
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Initialize the conversation with a delay to ensure proper setup
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for any previous connections to clean up
+      if (isInitialized) {
+        await conversation.endSession();
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
       
       console.log("Starting session with agent ID:", ELEVENLABS_AGENT_ID);
       await conversation.startSession({
@@ -113,6 +128,7 @@ const Index = () => {
       return true;
     } catch (error: any) {
       console.error("Start error:", error);
+      setIsConnecting(false);
       
       if (error.name === "NotAllowedError") {
         toast({
@@ -133,15 +149,20 @@ const Index = () => {
 
   const toggleRecording = async () => {
     if (!isRecording) {
-      if (await startConversation()) {
+      const success = await startConversation();
+      if (success) {
         setIsRecording(true);
       }
     } else {
       try {
+        setIsConnecting(true);
         await conversation.endSession();
+      } catch (error) {
+        console.error("End session error:", error);
       } finally {
         setIsRecording(false);
         setIsInitialized(false);
+        setIsConnecting(false);
       }
     }
   };

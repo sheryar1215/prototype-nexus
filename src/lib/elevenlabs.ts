@@ -7,6 +7,6 @@ export const initializeElevenLabs = () => {
   return apiKey;
 };
 
-// Using the most stable configuration for basic conversations
+// Using most stable configuration for basic conversations
 export const ELEVENLABS_AGENT_ID = "eleven_monolingual_v1";
-export const ELEVENLABS_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Sarah voice
+export const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel voice
