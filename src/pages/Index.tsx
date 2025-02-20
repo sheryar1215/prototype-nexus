@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -37,18 +36,13 @@ const Index = () => {
     const checkApiKey = async () => {
       try {
         const apiKey = initializeElevenLabs();
-        // Validate API key length
-        if (apiKey && apiKey.length > 20) {
-          setApiKeyValid(true);
-        } else {
-          throw new Error("Invalid API key format");
-        }
-      } catch (error) {
+        setApiKeyValid(true);
+      } catch (error: any) {
         setApiKeyValid(false);
         toast({
           variant: "destructive",
           title: "API Key Error",
-          description: "Please set up your ElevenLabs API key in Settings to use the conversation feature.",
+          description: error.message || "Please check your ElevenLabs API key in Settings.",
         });
       }
     };
@@ -87,7 +81,7 @@ const Index = () => {
       toast({
         variant: "destructive",
         title: "API Key Required",
-        description: "Please set up your ElevenLabs API key in Settings first.",
+        description: "Please set up a valid ElevenLabs API key in Settings first. The key should start with '11' and be at least 32 characters long.",
       });
       return false;
     }

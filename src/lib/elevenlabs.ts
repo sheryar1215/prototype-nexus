@@ -4,6 +4,10 @@ export const initializeElevenLabs = () => {
   if (!apiKey) {
     throw new Error("ElevenLabs API key not found");
   }
+  // Validate API key format (should be a string starting with "11" and be at least 32 characters)
+  if (!apiKey.startsWith("11") || apiKey.length < 32) {
+    throw new Error("Invalid ElevenLabs API key format. Please check your API key in Settings.");
+  }
   return apiKey;
 };
 
