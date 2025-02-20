@@ -32,10 +32,26 @@ const Index = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState(false);
 
+  const conversation = useConversation({
+    overrides: {
+      agent: {
+        prompt: {
+          prompt: `You are an experienced sales coach. You are helping a salesperson practice ${selectedScenario.title}. 
+          Provide constructive feedback and guidance based on their responses.`,
+        },
+        firstMessage: `Let's practice ${selectedScenario.title}. I'll play the role of a potential customer, and you'll be the salesperson.`,
+        language: "en",
+      },
+      tts: {
+        voiceId: ELEVENLABS_VOICE_ID,
+      },
+    },
+  });
+
   useEffect(() => {
     const checkApiKey = async () => {
       try {
-        const apiKey = initializeElevenLabs();
+        initializeElevenLabs();
         console.log("API Key validation successful");
         setApiKeyValid(true);
       } catch (error: any) {
@@ -51,34 +67,6 @@ const Index = () => {
     checkApiKey();
   }, [toast]);
 
-  const conversation = useConversation({
-    overrides: {
-      agent: {
-        prompt: {
-          prompt: `You are an experienced sales coach. You are helping a salesperson practice ${selectedScenario.title}. 
-          Provide constructive feedback and guidance based on their responses. Be encouraging but honest in your feedback.
-          Focus on helping them improve their approach and techniques.`,
-        },
-        firstMessage: `Let's practice ${selectedScenario.title}. I'll play the role of a potential customer, and you'll be the salesperson. 
-        Remember to be natural and confident. Are you ready to begin?`,
-        language: "en",
-        model: ELEVENLABS_AGENT_ID,
-      },
-      tts: {
-        voiceId: ELEVENLABS_VOICE_ID,
-      },
-    },
-    onError: (error) => {
-      console.error("Conversation error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to start conversation. Please check your API key and try again.",
-      });
-      setIsRecording(false);
-    },
-  });
-
   const startConversation = async () => {
     if (!apiKeyValid) {
       toast({
@@ -90,24 +78,23 @@ const Index = () => {
     }
 
     try {
-      console.log("Requesting microphone access...");
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("Starting conversation...");
       
-      console.log("Starting conversation session...");
-      // Start the conversation with the required configuration
-      await conversation.startSession({
+      // First request microphone access
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Initialize the conversation with the required config
+      const options = {
         agentId: ELEVENLABS_AGENT_ID,
-      });
+      };
       
-      toast({
-        title: "Conversation Started",
-        description: "You can now begin the sales practice scenario.",
-      });
+      console.log("Starting session with options:", options);
+      await conversation.startSession(options);
       
       setIsInitialized(true);
       return true;
     } catch (error: any) {
-      console.error("Start conversation error:", error);
+      console.error("Conversation error:", error);
       
       if (error instanceof DOMException && error.name === "NotAllowedError") {
         toast({
@@ -119,7 +106,7 @@ const Index = () => {
         toast({
           variant: "destructive",
           title: "Error",
-          description: `Failed to start conversation: ${error.message}`,
+          description: "Failed to start conversation. Please try again.",
         });
       }
       return false;
@@ -137,10 +124,6 @@ const Index = () => {
         await conversation.endSession();
         setIsRecording(false);
         setIsInitialized(false);
-        toast({
-          title: "Practice Session Ended",
-          description: "Your sales practice session has ended.",
-        });
       } catch (error: any) {
         console.error("End conversation error:", error);
         toast({
