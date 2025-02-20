@@ -36,9 +36,12 @@ const Index = () => {
   const conversation = useConversation({
     onConnect: () => {
       console.log("Connected to ElevenLabs");
+      setIsInitialized(true);
     },
     onError: (error) => {
       console.error("ElevenLabs error:", error);
+      setIsRecording(false);
+      setIsInitialized(false);
       toast({
         variant: "destructive",
         title: "Connection Error",
@@ -48,7 +51,7 @@ const Index = () => {
     overrides: {
       agent: {
         prompt: {
-          prompt: `You are an experienced sales coach helping with ${selectedScenario.title}.`,
+          prompt: `You are an experienced sales coach helping with ${selectedScenario.title}. Provide constructive feedback and guidance.`,
         },
         firstMessage: "Hello! I'm your sales coach. Let's start practicing.",
         language: "en",
@@ -93,7 +96,7 @@ const Index = () => {
 
     try {
       // First ensure we have microphone access
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       console.log("Starting session with agent ID:", ELEVENLABS_AGENT_ID);
       
@@ -102,7 +105,6 @@ const Index = () => {
         agentId: ELEVENLABS_AGENT_ID,
       });
       
-      setIsInitialized(true);
       return true;
     } catch (error: any) {
       console.error("Start error:", error);
@@ -133,10 +135,11 @@ const Index = () => {
     } else {
       try {
         await conversation.endSession();
-        setIsRecording(false);
-        setIsInitialized(false);
       } catch (error) {
         console.error("End error:", error);
+      } finally {
+        setIsRecording(false);
+        setIsInitialized(false);
       }
     }
   };
@@ -144,7 +147,7 @@ const Index = () => {
   useEffect(() => {
     return () => {
       if (isInitialized) {
-        conversation.endSession();
+        conversation.endSession().catch(console.error);
       }
     };
   }, [isInitialized, conversation]);
@@ -182,6 +185,7 @@ const Index = () => {
               size="lg"
               className={isRecording ? "bg-destructive hover:bg-destructive/90" : ""}
               onClick={toggleRecording}
+              disabled={!apiKeyValid}
             >
               {isRecording ? (
                 <>
