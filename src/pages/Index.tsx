@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -38,6 +37,11 @@ const Index = () => {
       console.log("Connected to ElevenLabs");
       setIsInitialized(true);
     },
+    onDisconnect: () => {
+      console.log("Disconnected from ElevenLabs");
+      setIsInitialized(false);
+      setIsRecording(false);
+    },
     onError: (error) => {
       console.error("ElevenLabs error:", error);
       setIsRecording(false);
@@ -58,8 +62,8 @@ const Index = () => {
       },
       tts: {
         voiceId: ELEVENLABS_VOICE_ID,
-        stability: 0.5,
-        similarityBoost: 0.5,
+        stability: 0.7,
+        similarityBoost: 0.7,
       },
     },
   });
@@ -96,14 +100,12 @@ const Index = () => {
 
     try {
       // First ensure we have microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (!stream) {
-        throw new Error("Microphone access failed");
-      }
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Initialize the conversation with a delay to ensure proper setup
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       console.log("Starting session with agent ID:", ELEVENLABS_AGENT_ID);
-      
-      // Initialize the conversation
       await conversation.startSession({
         agentId: ELEVENLABS_AGENT_ID,
       });
@@ -111,7 +113,6 @@ const Index = () => {
       return true;
     } catch (error: any) {
       console.error("Start error:", error);
-      setIsRecording(false);
       
       if (error.name === "NotAllowedError") {
         toast({
@@ -138,8 +139,6 @@ const Index = () => {
     } else {
       try {
         await conversation.endSession();
-      } catch (error) {
-        console.error("End error:", error);
       } finally {
         setIsRecording(false);
         setIsInitialized(false);
@@ -147,7 +146,6 @@ const Index = () => {
     }
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (isInitialized) {
