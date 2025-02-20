@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -94,8 +95,8 @@ const Index = () => {
         throw new Error("Microphone access not granted");
       }
       
-      // Start the conversation session
-      await conversation.startSession();
+      // Start the conversation session with the required agentId
+      await conversation.startSession({ agentId: ELEVENLABS_AGENT_ID });
       
       toast({
         title: "Conversation Started",
