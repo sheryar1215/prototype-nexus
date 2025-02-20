@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -83,12 +84,13 @@ const Index = () => {
     }
 
     try {
-      // Request microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request microphone access before starting the session
+      await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Start the conversation session with the required configuration
+      // Start the conversation session
       await conversation.startSession({
-        agentId: "default",
+        // You'll need to create an agent in ElevenLabs and use its ID here
+        agentId: "sales-coach-1",
       });
       
       toast({
@@ -101,11 +103,19 @@ const Index = () => {
     } catch (error) {
       console.error("Start conversation error:", error);
       
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to start conversation. Please check your microphone access and try again.",
-      });
+      if (error instanceof DOMException && error.name === "NotAllowedError") {
+        toast({
+          variant: "destructive",
+          title: "Microphone Access Denied",
+          description: "Please allow microphone access to use this feature.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to start conversation. Please try again.",
+        });
+      }
       return false;
     }
   };
