@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, MicOff, PlayCircle } from "lucide-react";
-import { initializeElevenLabs } from "../lib/elevenlabs";
+import { initializeElevenLabs, ELEVENLABS_AGENT_ID, ELEVENLABS_VOICE_ID } from "../lib/elevenlabs";
 
 const scenarios = [
   {
@@ -42,7 +42,7 @@ const Index = () => {
       toast({
         variant: "destructive",
         title: "API Key Error",
-        description: "Please set up your ElevenLabs API key to use the conversation feature.",
+        description: "Please set up your ElevenLabs API key in Settings to use the conversation feature.",
       });
     }
   }, [toast]);
@@ -52,14 +52,15 @@ const Index = () => {
       agent: {
         prompt: {
           prompt: `You are an experienced sales coach. You are helping a salesperson practice ${selectedScenario.title}. 
-          Provide constructive feedback and guidance based on their responses.`,
+          Provide constructive feedback and guidance based on their responses. Be encouraging but honest in your feedback.
+          Focus on helping them improve their approach and techniques.`,
         },
         firstMessage: `Let's practice ${selectedScenario.title}. I'll play the role of a potential customer, and you'll be the salesperson. 
-        Are you ready to begin?`,
+        Remember to be natural and confident. Are you ready to begin?`,
         language: "en",
       },
       tts: {
-        voiceId: "ErXwobaYiN019PkySvjV" // Professional voice
+        voiceId: ELEVENLABS_VOICE_ID
       },
     },
     onError: (error) => {
@@ -77,8 +78,8 @@ const Index = () => {
     if (!apiKeyValid) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Please set up your ElevenLabs API key first.",
+        title: "API Key Required",
+        description: "Please set up your ElevenLabs API key in Settings first.",
       });
       return false;
     }
@@ -89,8 +90,7 @@ const Index = () => {
       
       // Start the conversation session
       await conversation.startSession({
-        // You'll need to create an agent in ElevenLabs and use its ID here
-        agentId: "sales-coach-1",
+        agentId: ELEVENLABS_AGENT_ID,
       });
       
       toast({
