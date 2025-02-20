@@ -67,8 +67,8 @@ const Index = () => {
       },
       tts: {
         voiceId: ELEVENLABS_VOICE_ID,
-        stability: 0.8,
-        similarityBoost: 0.8,
+        stability: 0.5,
+        similarityBoost: 0.5,
       },
     },
   });
@@ -99,19 +99,15 @@ const Index = () => {
 
   const startConversation = async () => {
     if (isConnecting) return false;
-    if (!apiKeyValid) {
-      toast({
-        variant: "destructive",
-        title: "API Key Required",
-        description: "Please add your ElevenLabs API key in Settings first.",
-      });
-      return false;
-    }
-
-    setIsConnecting(true);
-
+    
     try {
-      // First ensure we have microphone access
+      // First check API key
+      const isKeyValid = await checkApiKey();
+      if (!isKeyValid) return false;
+
+      setIsConnecting(true);
+
+      // Ensure we have microphone access
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
       // Wait for any previous connections to clean up
@@ -119,6 +115,10 @@ const Index = () => {
         await conversation.endSession();
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
+      
+      // Clear any existing connection
+      await conversation.endSession().catch(() => {}); // Ignore errors here
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       console.log("Starting session with agent ID:", ELEVENLABS_AGENT_ID);
       await conversation.startSession({
@@ -208,7 +208,7 @@ const Index = () => {
               size="lg"
               className={isRecording ? "bg-destructive hover:bg-destructive/90" : ""}
               onClick={toggleRecording}
-              disabled={!apiKeyValid}
+              disabled={!apiKeyValid || isConnecting}
             >
               {isRecording ? (
                 <>
@@ -218,7 +218,7 @@ const Index = () => {
               ) : (
                 <>
                   <Mic className="mr-2" />
-                  Start Practice
+                  {isConnecting ? "Connecting..." : "Start Practice"}
                 </>
               )}
             </Button>
