@@ -11,6 +11,7 @@ const Settings = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [apiKey, setApiKey] = useState(localStorage.getItem("ELEVENLABS_API_KEY") || "");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -55,6 +56,23 @@ const Settings = () => {
     }
   };
 
+  const handleApiKeyUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      localStorage.setItem("ELEVENLABS_API_KEY", apiKey);
+      toast({
+        title: "Success",
+        description: "Your ElevenLabs API key has been saved.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error saving API key",
+        description: error.message,
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -65,6 +83,24 @@ const Settings = () => {
           <p className="mt-4 text-muted-foreground">
             Manage your preferences and account settings here.
           </p>
+
+          <div className="mt-8">
+            <h2 className="text-xl font-medium">ElevenLabs API Key</h2>
+            <form onSubmit={handleApiKeyUpdate} className="mt-4 max-w-md space-y-4">
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Enter your ElevenLabs API key"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit">
+                Save API Key
+              </Button>
+            </form>
+          </div>
 
           <div className="mt-8">
             <h2 className="text-xl font-medium">Change Password</h2>
