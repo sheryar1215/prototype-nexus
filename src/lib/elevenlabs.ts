@@ -10,7 +10,7 @@ export const initializeElevenLabs = () => {
   
   // Validate API key format (must start with either "11" or "sk" and be at least 32 characters)
   if (!apiKey.startsWith("11") && !apiKey.startsWith("sk")) {
-    throw new Error("Invalid ElevenLabs API key format. Your key starts with '" + apiKey.substring(0, 2) + "' but it should start with either '11' or 'sk'. Please make sure you're using a valid ElevenLabs API key from elevenlabs.io.");
+    throw new Error("Invalid ElevenLabs API key format. Please make sure you're using a valid ElevenLabs API key from elevenlabs.io.");
   }
   
   if (apiKey.length < 32) {
@@ -20,6 +20,6 @@ export const initializeElevenLabs = () => {
   return apiKey;
 };
 
-// Updated to use Eleven Labs' default agent ID format
-export const ELEVENLABS_AGENT_ID = "11labs/sales-coach-v1";
+// Updated to use correct format for the agent ID
+export const ELEVENLABS_AGENT_ID = "eleven_monolingual_v1";
 export const ELEVENLABS_VOICE_ID = "ErXwobaYiN019PkySvjV"; // Professional male voice

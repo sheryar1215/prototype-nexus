@@ -60,9 +60,10 @@ const Index = () => {
         firstMessage: `Let's practice ${selectedScenario.title}. I'll play the role of a potential customer, and you'll be the salesperson. 
         Remember to be natural and confident. Are you ready to begin?`,
         language: "en",
+        model: ELEVENLABS_AGENT_ID,
       },
       tts: {
-        voiceId: ELEVENLABS_VOICE_ID
+        voiceId: ELEVENLABS_VOICE_ID,
       },
     },
     onError: (error) => {
@@ -81,7 +82,7 @@ const Index = () => {
       toast({
         variant: "destructive",
         title: "API Key Required",
-        description: "Please set up a valid ElevenLabs API key in Settings first. The key should start with '11' and be at least 32 characters long.",
+        description: "Please set up a valid ElevenLabs API key in Settings first.",
       });
       return false;
     }
@@ -93,12 +94,8 @@ const Index = () => {
         throw new Error("Microphone access not granted");
       }
       
-      console.log("Starting conversation with agent ID:", ELEVENLABS_AGENT_ID);
-      
       // Start the conversation session
-      await conversation.startSession({
-        agentId: ELEVENLABS_AGENT_ID,
-      });
+      await conversation.startSession();
       
       toast({
         title: "Conversation Started",
