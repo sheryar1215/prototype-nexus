@@ -7,5 +7,6 @@ export const initializeElevenLabs = () => {
   return apiKey;
 };
 
-export const ELEVENLABS_AGENT_ID = "sales-coach"; // You'll replace this with your agent ID
+// Updated to use Eleven Labs' default agent ID format
+export const ELEVENLABS_AGENT_ID = "11labs/sales-coach-v1";
 export const ELEVENLABS_VOICE_ID = "ErXwobaYiN019PkySvjV"; // Professional male voice
