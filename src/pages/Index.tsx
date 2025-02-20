@@ -86,8 +86,8 @@ const Index = () => {
       setApiKeyValid(false);
       toast({
         variant: "destructive",
-        title: "API Key Error",
-        description: "Please check your ElevenLabs API key in Settings.",
+        title: "API Key Required",
+        description: "Please add your ElevenLabs API key in Settings.",
       });
       return false;
     }
@@ -103,21 +103,21 @@ const Index = () => {
     try {
       // First check API key
       const isKeyValid = await checkApiKey();
-      if (!isKeyValid) return false;
+      if (!isKeyValid) {
+        return false;
+      }
 
       setIsConnecting(true);
 
       // Ensure we have microphone access
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Wait for any previous connections to clean up
+      // Reset any existing session
       if (isInitialized) {
-        await conversation.endSession();
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await conversation.endSession().catch(() => {});
       }
       
-      // Clear any existing connection
-      await conversation.endSession().catch(() => {}); // Ignore errors here
+      // Add a small delay to ensure cleanup
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       console.log("Starting session with agent ID:", ELEVENLABS_AGENT_ID);
