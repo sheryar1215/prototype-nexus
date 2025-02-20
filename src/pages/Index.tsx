@@ -43,6 +43,8 @@ const Index = () => {
       },
       tts: {
         voiceId: ELEVENLABS_VOICE_ID,
+        stability: 0.5,
+        similarityBoost: 0.75,
       },
     },
   });
@@ -50,7 +52,10 @@ const Index = () => {
   useEffect(() => {
     const checkApiKey = async () => {
       try {
-        initializeElevenLabs();
+        const key = initializeElevenLabs();
+        if (!key.startsWith("")) {
+          throw new Error("Invalid API key format");
+        }
         setApiKeyValid(true);
       } catch (error: any) {
         console.error("API Key validation failed:", error);
@@ -76,7 +81,7 @@ const Index = () => {
     }
 
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       await conversation.startSession({
         agentId: ELEVENLABS_AGENT_ID,
@@ -97,7 +102,7 @@ const Index = () => {
         toast({
           variant: "destructive",
           title: "Connection Error",
-          description: "Could not connect to ElevenLabs. Please check your API key.",
+          description: "Could not connect to ElevenLabs. Please check your API key and try again.",
         });
       }
       return false;
