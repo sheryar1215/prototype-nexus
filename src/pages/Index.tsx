@@ -97,6 +97,9 @@ const Index = () => {
     try {
       // First ensure we have microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!stream) {
+        throw new Error("Microphone access failed");
+      }
       
       console.log("Starting session with agent ID:", ELEVENLABS_AGENT_ID);
       
@@ -108,6 +111,7 @@ const Index = () => {
       return true;
     } catch (error: any) {
       console.error("Start error:", error);
+      setIsRecording(false);
       
       if (error.name === "NotAllowedError") {
         toast({
@@ -128,8 +132,7 @@ const Index = () => {
 
   const toggleRecording = async () => {
     if (!isRecording) {
-      const success = await startConversation();
-      if (success) {
+      if (await startConversation()) {
         setIsRecording(true);
       }
     } else {
@@ -144,6 +147,7 @@ const Index = () => {
     }
   };
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (isInitialized) {
