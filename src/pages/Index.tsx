@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, MicOff, PlayCircle } from "lucide-react";
-import "../lib/elevenlabs";
+import { initializeElevenLabs } from "../lib/elevenlabs";
 
 const scenarios = [
   {
@@ -30,6 +30,21 @@ const Index = () => {
   const [selectedScenario, setSelectedScenario] = useState(scenarios[0]);
   const { toast } = useToast();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [apiKeyValid, setApiKeyValid] = useState(false);
+
+  useEffect(() => {
+    try {
+      initializeElevenLabs();
+      setApiKeyValid(true);
+    } catch (error) {
+      setApiKeyValid(false);
+      toast({
+        variant: "destructive",
+        title: "API Key Error",
+        description: "Please set up your ElevenLabs API key to use the conversation feature.",
+      });
+    }
+  }, [toast]);
 
   const conversation = useConversation({
     overrides: {
@@ -58,16 +73,23 @@ const Index = () => {
   });
 
   const startConversation = async () => {
+    if (!apiKeyValid) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please set up your ElevenLabs API key first.",
+      });
+      return false;
+    }
+
     try {
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       // Start the conversation session with the required configuration
-      const sessionResponse = await conversation.startSession({
-        agentId: "default", // Use the default agent ID
+      await conversation.startSession({
+        agentId: "default",
       });
-      
-      console.log("Session started successfully:", sessionResponse);
       
       toast({
         title: "Conversation Started",
@@ -76,28 +98,13 @@ const Index = () => {
       
       setIsInitialized(true);
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error("Start conversation error:", error);
-      console.error("Error details:", {
-        name: error?.name,
-        message: error?.message,
-        stack: error?.stack,
-        isTrusted: error?.isTrusted
-      });
-      
-      let errorMessage = "Failed to start conversation. ";
-      if (error?.name === "NotAllowedError") {
-        errorMessage += "Please allow microphone access to continue.";
-      } else if (typeof error?.message === 'string' && error.message.toLowerCase().includes("api key")) {
-        errorMessage += "Please check your ElevenLabs API key and try again.";
-      } else {
-        errorMessage += (error?.message || "Please ensure you have set up your ElevenLabs API key correctly.");
-      }
       
       toast({
         variant: "destructive",
         title: "Error",
-        description: errorMessage,
+        description: "Failed to start conversation. Please check your microphone access and try again.",
       });
       return false;
     }
