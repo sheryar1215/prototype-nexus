@@ -17,6 +17,7 @@ interface PlaybookFormData {
   targetAudience: string;
   keyFeatures: string[];
   benefits: string[];
+  webhookUrl?: string;
 }
 
 const Playbook = () => {
@@ -28,6 +29,7 @@ const Playbook = () => {
     targetAudience: "",
     keyFeatures: [""],
     benefits: [""],
+    webhookUrl: "",
   });
   const { toast } = useToast();
   const { session } = useAuth();
@@ -62,10 +64,40 @@ const Playbook = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Playbook created successfully",
-      });
+      // If webhook URL is provided, send data to Google Drive
+      if (formData.webhookUrl) {
+        const { error: webhookError } = await supabase.functions.invoke('send-to-gdrive', {
+          body: {
+            playbookData: {
+              title: formData.title,
+              description: formData.description,
+              productName: formData.productName,
+              targetAudience: formData.targetAudience,
+              keyFeatures: formData.keyFeatures.filter(f => f.trim() !== ""),
+              benefits: formData.benefits.filter(b => b.trim() !== ""),
+            },
+            webhookUrl: formData.webhookUrl,
+          },
+        });
+
+        if (webhookError) {
+          toast({
+            title: "Warning",
+            description: "Playbook saved but failed to send to Google Drive",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Playbook created and sent to Google Drive",
+          });
+        }
+      } else {
+        toast({
+          title: "Success",
+          description: "Playbook created successfully",
+        });
+      }
 
       // Reset form
       setFormData({
@@ -75,6 +107,7 @@ const Playbook = () => {
         targetAudience: "",
         keyFeatures: [""],
         benefits: [""],
+        webhookUrl: "",
       });
 
       // Navigate to the dashboard or playbooks list
@@ -173,6 +206,21 @@ const Playbook = () => {
                     }))
                   }
                   placeholder="Enter target audience"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Google Drive Webhook URL (Optional)</label>
+                <Input
+                  value={formData.webhookUrl}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      webhookUrl: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter Google Drive webhook URL"
+                  type="url"
                 />
               </div>
 
