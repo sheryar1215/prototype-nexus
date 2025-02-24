@@ -185,7 +185,7 @@ const Index = () => {
     <div className="min-h-screen">
       <Header />
       <Sidebar />
-      <main className="ml-64 mt-16 p-6">
+      <main className="transition-all duration-200 ml-[var(--sidebar-width,16rem)] mt-16 p-6">
         <div className="glass rounded-lg p-6">
           <h1 className="text-3xl font-semibold">Sales Practice Coach</h1>
           <p className="mt-4 text-muted-foreground">

@@ -1,8 +1,9 @@
 
-import { Home, BookOpen, Settings, LogOut } from "lucide-react";
+import { Home, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 const menuItems = [
   { icon: Home, label: "Home", path: "/" },
@@ -25,6 +27,7 @@ export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -41,21 +44,39 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="glass fixed left-0 top-16 bottom-0 w-64 p-4 transition-all duration-200">
-      <nav className="flex h-full flex-col">
+    <aside
+      className={cn(
+        "glass fixed left-0 top-16 bottom-0 transition-all duration-200",
+        isCollapsed ? "w-16" : "w-64"
+      )}
+    >
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-3 glass rounded-full p-1.5 text-muted-foreground hover:text-foreground"
+      >
+        {isCollapsed ? (
+          <ChevronRight className="h-4 w-4" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
+      </button>
+      <nav className="flex h-full flex-col p-4">
         <ul className="space-y-2">
           {menuItems.map((item) => (
             <li key={item.path}>
               <Link
                 to={item.path}
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-accent ${
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-accent",
                   location.pathname === item.path
                     ? "bg-accent text-accent-foreground"
-                    : "text-foreground/60 hover:text-foreground"
-                }`}
+                    : "text-foreground/60 hover:text-foreground",
+                  isCollapsed && "justify-center px-2"
+                )}
+                title={isCollapsed ? item.label : undefined}
               >
                 <item.icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                {!isCollapsed && <span>{item.label}</span>}
               </Link>
             </li>
           ))}
@@ -63,9 +84,15 @@ export const Sidebar = () => {
         <div className="mt-auto">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-destructive transition-all duration-200 hover:bg-destructive/10">
+              <button
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-destructive transition-all duration-200 hover:bg-destructive/10",
+                  isCollapsed && "justify-center px-2"
+                )}
+                title={isCollapsed ? "Logout" : undefined}
+              >
                 <LogOut className="h-5 w-5" />
-                <span>Logout</span>
+                {!isCollapsed && <span>Logout</span>}
               </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
