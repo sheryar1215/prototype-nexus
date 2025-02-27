@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, MicOff, PlayCircle } from "lucide-react";
-import { initializeElevenLabs, ELEVENLABS_MODEL_ID, ELEVENLABS_VOICE_ID, ELEVENLABS_URL } from "../lib/elevenlabs";
+import { initializeElevenLabs, ELEVENLABS_MODEL_ID, ELEVENLABS_VOICE_ID, ELEVENLABS_URL, delay } from "../lib/elevenlabs";
 
 const scenarios = [
   {
@@ -32,12 +33,15 @@ const Index = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const connectionAttempts = useRef(0);
+  const maxConnectionAttempts = 3;
 
   const conversation = useConversation({
     onConnect: () => {
       console.log("Connected to ElevenLabs");
       setIsInitialized(true);
       setIsConnecting(false);
+      connectionAttempts.current = 0;
     },
     onDisconnect: () => {
       console.log("Disconnected from ElevenLabs");
@@ -66,8 +70,8 @@ const Index = () => {
       },
       tts: {
         voiceId: ELEVENLABS_VOICE_ID,
-        stability: 0.8,
-        similarityBoost: 0.8,
+        stability: 0.5, // Reduced stability for better performance
+        similarityBoost: 0.5, // Reduced for better performance
         modelId: ELEVENLABS_MODEL_ID
       },
     },
@@ -76,6 +80,7 @@ const Index = () => {
   const checkApiKey = useCallback(async () => {
     try {
       const apiKey = await initializeElevenLabs();
+      console.log("API key validated successfully");
       setApiKeyValid(true);
       return true;
     } catch (error: any) {
@@ -96,8 +101,10 @@ const Index = () => {
 
   const requestMicrophonePermission = async () => {
     try {
+      console.log("Requesting microphone permission...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(track => track.stop());
+      console.log("Microphone permission granted");
       return true;
     } catch (error: any) {
       console.error("Microphone permission error:", error);
@@ -111,10 +118,14 @@ const Index = () => {
   };
 
   const startConversation = async () => {
-    if (isConnecting) return false;
+    if (isConnecting) {
+      console.log("Already attempting to connect, please wait...");
+      return false;
+    }
     
     try {
       setIsConnecting(true);
+      connectionAttempts.current += 1;
       
       // Check microphone permission first
       const hasMicPermission = await requestMicrophonePermission();
@@ -132,25 +143,48 @@ const Index = () => {
 
       // Clean up any existing session
       if (isInitialized) {
-        await conversation.endSession().catch(() => {});
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("Cleaning up existing session...");
+        try {
+          await conversation.endSession();
+        } catch (err) {
+          console.log("Error ending previous session:", err);
+        }
+        // Wait a moment for cleanup
+        await delay(1000);
       }
       
       console.log("Starting new session...");
+      // Construct the full URL with the voice ID
+      const fullUrl = `${ELEVENLABS_URL}${ELEVENLABS_VOICE_ID}`;
+      console.log("Connecting to:", fullUrl);
+      
       await conversation.startSession({
-        url: `${ELEVENLABS_URL}${ELEVENLABS_VOICE_ID}`,
+        url: fullUrl,
       });
       
       return true;
     } catch (error: any) {
       console.error("Start conversation error:", error);
       setIsConnecting(false);
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: "Could not connect to ElevenLabs. Please try again.",
-      });
-      return false;
+      
+      // Retry logic
+      if (connectionAttempts.current < maxConnectionAttempts) {
+        toast({
+          title: "Retrying connection",
+          description: `Connection attempt ${connectionAttempts.current} of ${maxConnectionAttempts}...`,
+        });
+        // Wait before retrying
+        await delay(2000);
+        return startConversation();
+      } else {
+        connectionAttempts.current = 0;
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Could not connect to ElevenLabs after multiple attempts. Please check your API key and internet connection.",
+        });
+        return false;
+      }
     }
   };
 
@@ -162,6 +196,7 @@ const Index = () => {
       }
     } else {
       try {
+        console.log("Stopping recording and ending session...");
         await conversation.endSession();
       } catch (error) {
         console.error("End session error:", error);
@@ -173,9 +208,23 @@ const Index = () => {
     }
   };
 
+  // Update prompt when scenario changes
+  useEffect(() => {
+    if (conversation && isInitialized) {
+      // If already in a session and scenario changes, restart the session
+      console.log("Scenario changed, restarting session...");
+      toggleRecording().then(() => {
+        if (!isRecording) {
+          toggleRecording();
+        }
+      });
+    }
+  }, [selectedScenario]);
+
   useEffect(() => {
     return () => {
       if (isInitialized) {
+        console.log("Component unmounting, cleaning up session...");
         conversation.endSession().catch(console.error);
       }
     };
@@ -247,6 +296,10 @@ const Index = () => {
               <li>The AI coach will respond and provide feedback</li>
               <li>Click "Stop Practice" when you're done</li>
             </ol>
+          </div>
+          
+          <div className="mt-8 text-sm text-muted-foreground">
+            <p>Note: Make sure you've added your ElevenLabs API key in the Settings page and allowed microphone access.</p>
           </div>
         </div>
       </main>
