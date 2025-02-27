@@ -2,13 +2,20 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { Button } from "@/components/ui/button";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, MicOff, PlayCircle } from "lucide-react";
-import { initializeElevenLabs, ELEVENLABS_MODEL_ID, ELEVENLABS_VOICE_ID, delay, getElevenLabsUrl } from "../lib/elevenlabs";
+import { 
+  initializeElevenLabs, 
+  ELEVENLABS_MODEL_ID, 
+  ELEVENLABS_VOICE_ID, 
+  delay, 
+  getElevenLabsUrl 
+} from "../lib/elevenlabs";
+import { ScenarioSelection, Scenario } from "@/components/sales-coach/ScenarioSelection";
+import { RecordingControls } from "@/components/sales-coach/RecordingControls";
+import { Instructions } from "@/components/sales-coach/Instructions";
 
-const scenarios = [
+const scenarios: Scenario[] = [
   {
     id: 1,
     title: "Product Introduction",
@@ -250,6 +257,10 @@ const Index = () => {
     };
   }, [isInitialized, conversation]);
 
+  const handleScenarioChange = (scenario: Scenario) => {
+    setSelectedScenario(scenario);
+  };
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -261,66 +272,21 @@ const Index = () => {
             Practice your sales skills with our AI-powered coach.
           </p>
 
-          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {scenarios.map((scenario) => (
-              <div
-                key={scenario.id}
-                className={`glass cursor-pointer rounded-lg p-4 transition-all hover:scale-105 ${
-                  selectedScenario.id === scenario.id ? "ring-2 ring-primary" : ""
-                }`}
-                onClick={() => setSelectedScenario(scenario)}
-              >
-                <h3 className="text-lg font-medium">{scenario.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {scenario.description}
-                </p>
-              </div>
-            ))}
-          </div>
+          <ScenarioSelection
+            scenarios={scenarios}
+            selectedScenario={selectedScenario}
+            onScenarioChange={handleScenarioChange}
+          />
 
-          <div className="mt-8 flex items-center justify-center gap-4">
-            <Button
-              size="lg"
-              className={isRecording ? "bg-destructive hover:bg-destructive/90" : ""}
-              onClick={toggleRecording}
-              disabled={!apiKeyValid || isConnecting}
-            >
-              {isRecording ? (
-                <>
-                  <MicOff className="mr-2" />
-                  Stop Practice
-                </>
-              ) : (
-                <>
-                  <Mic className="mr-2" />
-                  {isConnecting ? "Connecting..." : "Start Practice"}
-                </>
-              )}
-            </Button>
-          </div>
+          <RecordingControls
+            isRecording={isRecording}
+            isConnecting={isConnecting}
+            isSpeaking={conversation.isSpeaking}
+            apiKeyValid={apiKeyValid}
+            onToggleRecording={toggleRecording}
+          />
 
-          {conversation.isSpeaking && (
-            <div className="mt-6 flex items-center justify-center">
-              <div className="glass animate-pulse rounded-full p-4">
-                <PlayCircle className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          )}
-
-          <div className="mt-8">
-            <h2 className="text-xl font-medium">Instructions</h2>
-            <ol className="mt-4 list-decimal space-y-2 pl-4">
-              <li>Select a scenario from the options above</li>
-              <li>Click "Start Practice" to begin the conversation</li>
-              <li>Speak naturally as if you're talking to a real customer</li>
-              <li>The AI coach will respond and provide feedback</li>
-              <li>Click "Stop Practice" when you're done</li>
-            </ol>
-          </div>
-          
-          <div className="mt-8 text-sm text-muted-foreground">
-            <p>Note: Make sure you've added your ElevenLabs API key in the Settings page and allowed microphone access.</p>
-          </div>
+          <Instructions />
         </div>
       </main>
     </div>
