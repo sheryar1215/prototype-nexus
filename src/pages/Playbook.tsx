@@ -64,32 +64,35 @@ const Playbook = () => {
 
       if (error) throw error;
 
-      // If webhook URL is provided, send data to Google Drive
+      // If webhook URL is provided, send data to webhook
       if (formData.webhookUrl) {
-        const { error: webhookError } = await supabase.functions.invoke('send-to-gdrive', {
+        const playbookData = {
+          title: formData.title,
+          description: formData.description,
+          productName: formData.productName,
+          targetAudience: formData.targetAudience,
+          keyFeatures: formData.keyFeatures.filter(f => f.trim() !== ""),
+          benefits: formData.benefits.filter(b => b.trim() !== ""),
+        };
+
+        const { data: webhookData, error: webhookError } = await supabase.functions.invoke('trigger-webhook', {
           body: {
-            playbookData: {
-              title: formData.title,
-              description: formData.description,
-              productName: formData.productName,
-              targetAudience: formData.targetAudience,
-              keyFeatures: formData.keyFeatures.filter(f => f.trim() !== ""),
-              benefits: formData.benefits.filter(b => b.trim() !== ""),
-            },
             webhookUrl: formData.webhookUrl,
+            playbookData: playbookData,
           },
         });
 
         if (webhookError) {
+          console.error("Webhook error:", webhookError);
           toast({
             title: "Warning",
-            description: "Playbook saved but failed to send to Google Drive",
+            description: "Playbook saved but failed to trigger webhook",
             variant: "destructive",
           });
         } else {
           toast({
             title: "Success",
-            description: "Playbook created and sent to Google Drive",
+            description: "Playbook created and webhook triggered successfully",
           });
         }
       } else {
@@ -210,7 +213,7 @@ const Playbook = () => {
               </div>
 
               <div>
-                <label className="text-sm font-medium">Google Drive Webhook URL (Optional)</label>
+                <label className="text-sm font-medium">Webhook URL (Optional)</label>
                 <Input
                   value={formData.webhookUrl}
                   onChange={(e) =>
@@ -219,7 +222,7 @@ const Playbook = () => {
                       webhookUrl: e.target.value,
                     }))
                   }
-                  placeholder="Enter Google Drive webhook URL"
+                  placeholder="Enter webhook URL for integration"
                   type="url"
                 />
               </div>
