@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/hooks/use-toast";
 import { Mic, MicOff, PlayCircle } from "lucide-react";
-import { initializeElevenLabs, ELEVENLABS_MODEL_ID, ELEVENLABS_VOICE_ID, ELEVENLABS_URL, delay } from "../lib/elevenlabs";
+import { initializeElevenLabs, ELEVENLABS_MODEL_ID, ELEVENLABS_VOICE_ID, delay, getElevenLabsUrl } from "../lib/elevenlabs";
 
 const scenarios = [
   {
@@ -36,12 +36,18 @@ const Index = () => {
   const connectionAttempts = useRef(0);
   const maxConnectionAttempts = 3;
 
+  // Create conversation instance with improved error handling
   const conversation = useConversation({
     onConnect: () => {
-      console.log("Connected to ElevenLabs");
+      console.log("Connected to ElevenLabs successfully");
       setIsInitialized(true);
       setIsConnecting(false);
       connectionAttempts.current = 0;
+      
+      toast({
+        title: "Connected",
+        description: "Successfully connected to ElevenLabs voice assistant.",
+      });
     },
     onDisconnect: () => {
       console.log("Disconnected from ElevenLabs");
@@ -54,6 +60,7 @@ const Index = () => {
       setIsRecording(false);
       setIsInitialized(false);
       setIsConnecting(false);
+      
       toast({
         variant: "destructive",
         title: "Connection Error",
@@ -70,8 +77,8 @@ const Index = () => {
       },
       tts: {
         voiceId: ELEVENLABS_VOICE_ID,
-        stability: 0.5, // Reduced stability for better performance
-        similarityBoost: 0.5, // Reduced for better performance
+        stability: 0.3, // Lower for better performance
+        similarityBoost: 0.3, // Lower for better performance
         modelId: ELEVENLABS_MODEL_ID
       },
     },
@@ -79,7 +86,7 @@ const Index = () => {
 
   const checkApiKey = useCallback(async () => {
     try {
-      const apiKey = await initializeElevenLabs();
+      await initializeElevenLabs();
       console.log("API key validated successfully");
       setApiKeyValid(true);
       return true;
@@ -146,42 +153,54 @@ const Index = () => {
         console.log("Cleaning up existing session...");
         try {
           await conversation.endSession();
+          // Wait a moment for cleanup
+          await delay(1000);
         } catch (err) {
           console.log("Error ending previous session:", err);
         }
-        // Wait a moment for cleanup
-        await delay(1000);
       }
       
       console.log("Starting new session...");
-      // Construct the full URL with the voice ID
-      const fullUrl = `${ELEVENLABS_URL}${ELEVENLABS_VOICE_ID}`;
+      
+      // Use the helper function to get the correct URL format
+      const fullUrl = getElevenLabsUrl(ELEVENLABS_VOICE_ID);
       console.log("Connecting to:", fullUrl);
       
-      await conversation.startSession({
-        url: fullUrl,
-      });
+      // Add a slight delay before connection attempt
+      await delay(500);
       
-      return true;
+      try {
+        await conversation.startSession({
+          url: fullUrl,
+        });
+        return true;
+      } catch (error) {
+        console.error("Failed to start session:", error);
+        throw error;
+      }
+      
     } catch (error: any) {
       console.error("Start conversation error:", error);
       setIsConnecting(false);
       
-      // Retry logic
+      // Retry logic with exponential backoff
       if (connectionAttempts.current < maxConnectionAttempts) {
+        const backoffTime = Math.pow(2, connectionAttempts.current) * 1000;
+        
         toast({
           title: "Retrying connection",
-          description: `Connection attempt ${connectionAttempts.current} of ${maxConnectionAttempts}...`,
+          description: `Connection attempt ${connectionAttempts.current} of ${maxConnectionAttempts}. Retrying in ${backoffTime/1000} seconds...`,
         });
-        // Wait before retrying
-        await delay(2000);
+        
+        // Wait with exponential backoff before retrying
+        await delay(backoffTime);
         return startConversation();
       } else {
         connectionAttempts.current = 0;
         toast({
           variant: "destructive",
           title: "Connection Error",
-          description: "Could not connect to ElevenLabs after multiple attempts. Please check your API key and internet connection.",
+          description: "Could not connect to ElevenLabs after multiple attempts. Please check your API key and internet connection. You may need to try again later.",
         });
         return false;
       }
@@ -208,7 +227,7 @@ const Index = () => {
     }
   };
 
-  // Update prompt when scenario changes
+  // Handle scenario changes
   useEffect(() => {
     if (conversation && isInitialized) {
       // If already in a session and scenario changes, restart the session
@@ -221,6 +240,7 @@ const Index = () => {
     }
   }, [selectedScenario]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (isInitialized) {
