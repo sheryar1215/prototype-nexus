@@ -2,13 +2,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Loader2, Mic, MicOff, Volume2 } from "lucide-react";
+import { Loader2, Mic, MicOff, Volume2, Send } from "lucide-react";
 import { 
   initializeElevenLabs, 
   getElevenLabsUrl, 
   ELEVENLABS_MODEL_ID, 
   ELEVENLABS_VOICE_ID 
 } from "@/lib/elevenlabs";
+import { Input } from "@/components/ui/input";
 
 export function RealTimeCoaching() {
   const [isRecording, setIsRecording] = useState(false);
@@ -16,9 +17,12 @@ export function RealTimeCoaching() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [coachingResponse, setCoachingResponse] = useState("");
   const [apiKeyValid, setApiKeyValid] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [isAskingQuestion, setIsAskingQuestion] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Check if API key is valid on mount
@@ -172,6 +176,47 @@ export function RealTimeCoaching() {
     }
   };
 
+  const handleAskQuestion = async () => {
+    if (!question.trim() || !apiKeyValid || isAskingQuestion) return;
+
+    try {
+      setIsAskingQuestion(true);
+      const response = await getAnswerForQuestion(question);
+      setCoachingResponse(response);
+      await playCoachingResponse(response);
+      setQuestion("");
+      setIsAskingQuestion(false);
+    } catch (error) {
+      console.error("Error asking question:", error);
+      setIsAskingQuestion(false);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not process your question. Please try again.",
+      });
+    }
+  };
+
+  const getAnswerForQuestion = async (userQuestion: string): Promise<string> => {
+    // This function would normally call an API with the question
+    // For now, we'll use predefined responses based on keywords in the question
+    const questionLower = userQuestion.toLowerCase();
+    
+    if (questionLower.includes("objection") || questionLower.includes("reject")) {
+      return "When handling objections, remember to listen fully before responding. Acknowledge the concern, ask clarifying questions, and then address the specific issue with relevant benefits. For price objections, focus on value rather than defending the price.";
+    } else if (questionLower.includes("close") || questionLower.includes("closing")) {
+      return "For effective closing, summarize the key benefits that resonated with the customer. Use assumptive language like 'When we implement this...' rather than 'If...'. Trial closes throughout your presentation help gauge readiness. The best close is one that feels like a natural next step, not a high-pressure tactic.";
+    } else if (questionLower.includes("question") || questionLower.includes("ask")) {
+      return "Asking effective questions is crucial in sales. Use open-ended questions that start with 'How' or 'What' to understand the customer's situation better. Avoid rapid-fire questioning - give the customer time to respond fully. Good questions to ask include: 'What challenges are you facing with your current solution?' and 'How would solving this problem impact your business goals?'";
+    } else if (questionLower.includes("pitch") || questionLower.includes("present")) {
+      return "A successful sales pitch follows a clear structure: Start with a compelling hook related to their pain point, briefly introduce your solution, share 2-3 relevant case studies, describe how your product works, emphasize specific benefits (not just features), address potential objections, and end with a clear call to action. Keep your pitch to under 10 minutes when possible.";
+    } else if (questionLower.includes("follow up") || questionLower.includes("followup")) {
+      return "For effective follow-ups, always reference your previous conversation and add new value with each contact. Wait 3-5 days after the initial meeting, use various channels (email, call, LinkedIn), and be persistent but respectful. A good follow-up sequence might include 5-7 touches over 3-4 weeks before considering the lead inactive.";
+    } else {
+      return `Regarding your question about ${userQuestion.split(' ').slice(0, 3).join(' ')}..., in sales, it's important to focus on the customer's specific needs rather than generic approaches. Could you provide more details about the specific sales scenario you're facing so I can give you more targeted advice?`;
+    }
+  };
+
   const playCoachingResponse = async (text: string) => {
     if (!text || !apiKeyValid) return;
     
@@ -319,6 +364,12 @@ export function RealTimeCoaching() {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleAskQuestion();
+    }
+  };
+
   return (
     <div className="glass rounded-lg p-6 mt-6">
       <h2 className="text-xl font-bold">Real-Time Coaching</h2>
@@ -326,11 +377,12 @@ export function RealTimeCoaching() {
         Start speaking and get instant coaching feedback on your sales pitch!
       </p>
       
+      {/* Voice recording section */}
       <div className="mt-6 flex justify-center">
         <Button
           size="lg"
           onClick={isRecording ? stopRecording : startRecording}
-          disabled={!apiKeyValid || isProcessing || isSpeaking}
+          disabled={!apiKeyValid || isProcessing || isSpeaking || isAskingQuestion}
           className={isRecording ? "bg-destructive hover:bg-destructive/90" : ""}
         >
           {isRecording ? (
@@ -350,6 +402,33 @@ export function RealTimeCoaching() {
             </>
           )}
         </Button>
+      </div>
+      
+      {/* Question asking section */}
+      <div className="mt-6">
+        <h3 className="text-md font-medium mb-2">Ask a question about sales scenarios:</h3>
+        <div className="flex gap-2">
+          <Input
+            ref={inputRef}
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="E.g., How do I handle price objections?"
+            className="flex-1"
+            disabled={isAskingQuestion || isSpeaking || isRecording}
+          />
+          <Button
+            onClick={handleAskQuestion}
+            disabled={!question.trim() || !apiKeyValid || isAskingQuestion || isSpeaking || isRecording}
+          >
+            {isAskingQuestion ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            <span className="ml-2 sr-only md:not-sr-only md:inline-flex">Ask</span>
+          </Button>
+        </div>
       </div>
       
       {isSpeaking && (
