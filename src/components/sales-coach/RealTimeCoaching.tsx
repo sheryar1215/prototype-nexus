@@ -7,6 +7,7 @@ import { getAIAnalysis, playAudioResponse } from "@/utils/speech-utils";
 import { RecordingButton } from "./RecordingButton";
 import { CoachingResponse } from "./CoachingResponse";
 import { ApiKeyWarning } from "./ApiKeyWarning";
+import { VoiceSelector } from "./VoiceSelector";
 
 export function RealTimeCoaching() {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -16,9 +17,11 @@ export function RealTimeCoaching() {
   const {
     isRecording,
     isProcessing,
+    recordedAudio,
     startRecording,
     stopRecording,
     getRecordedAudio,
+    saveRecording,
     completeProcessing
   } = useVoiceRecorder();
   
@@ -27,7 +30,8 @@ export function RealTimeCoaching() {
     checkApiKey,
     getVoiceUrl,
     modelId,
-    voiceId
+    voiceId,
+    setVoiceId
   } = useElevenLabs();
 
   const toggleRecording = async () => {
@@ -88,6 +92,14 @@ export function RealTimeCoaching() {
         Start speaking and get instant coaching feedback on your sales pitch!
       </p>
       
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <VoiceSelector 
+          selectedVoiceId={voiceId} 
+          onVoiceChange={setVoiceId} 
+          disabled={isRecording || isProcessing || isSpeaking}
+        />
+      </div>
+      
       <RecordingButton
         isRecording={isRecording}
         isProcessing={isProcessing}
@@ -99,6 +111,8 @@ export function RealTimeCoaching() {
       <CoachingResponse
         coachingResponse={coachingResponse}
         isSpeaking={isSpeaking}
+        recordedAudio={recordedAudio}
+        onSaveRecording={saveRecording}
       />
       
       <ApiKeyWarning apiKeyValid={apiKeyValid} />

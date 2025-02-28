@@ -10,6 +10,7 @@ import {
 
 export function useElevenLabs() {
   const [apiKeyValid, setApiKeyValid] = useState(false);
+  const [selectedVoiceId, setSelectedVoiceId] = useState(ELEVENLABS_VOICE_ID);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -32,11 +33,16 @@ export function useElevenLabs() {
     }
   };
 
+  const handleVoiceChange = (voiceId: string) => {
+    setSelectedVoiceId(voiceId);
+  };
+
   return {
     apiKeyValid,
     checkApiKey,
     getVoiceUrl: getElevenLabsUrl,
     modelId: ELEVENLABS_MODEL_ID,
-    voiceId: ELEVENLABS_VOICE_ID
+    voiceId: selectedVoiceId,
+    setVoiceId: handleVoiceChange
   };
 }

@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
@@ -99,8 +100,32 @@ export function useVoiceRecorder() {
     
     setIsProcessing(true);
     const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-    audioChunksRef.current = [];
+    setRecordedAudio(audioBlob);
     return audioBlob;
+  };
+
+  const saveRecording = () => {
+    if (!recordedAudio) return;
+    
+    // Create a download link
+    const url = URL.createObjectURL(recordedAudio);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `sales-pitch-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 100);
+    
+    toast({
+      title: "Recording Saved",
+      description: "Your sales pitch recording has been saved to your device.",
+    });
   };
 
   const completeProcessing = () => {
@@ -110,9 +135,11 @@ export function useVoiceRecorder() {
   return {
     isRecording,
     isProcessing,
+    recordedAudio,
     startRecording,
     stopRecording,
     getRecordedAudio,
+    saveRecording,
     completeProcessing
   };
 }
