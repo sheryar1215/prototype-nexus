@@ -14,6 +14,7 @@ import {
 import { ScenarioSelection, Scenario } from "@/components/sales-coach/ScenarioSelection";
 import { RecordingControls } from "@/components/sales-coach/RecordingControls";
 import { Instructions } from "@/components/sales-coach/Instructions";
+import { RealTimeCoaching } from "@/components/sales-coach/RealTimeCoaching";
 
 const scenarios: Scenario[] = [
   {
@@ -40,6 +41,7 @@ const Index = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showRealTimeCoaching, setShowRealTimeCoaching] = useState(false);
   const connectionAttempts = useRef(0);
   const maxConnectionAttempts = 3;
 
@@ -261,32 +263,57 @@ const Index = () => {
     setSelectedScenario(scenario);
   };
 
+  const toggleCoachingMode = () => {
+    setShowRealTimeCoaching(!showRealTimeCoaching);
+    
+    // If switching to standard mode and recording is active, stop it
+    if (showRealTimeCoaching && isRecording) {
+      toggleRecording();
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <Header />
       <Sidebar />
       <main className="transition-all duration-200 ml-[var(--sidebar-width,16rem)] mt-16 p-6">
         <div className="glass rounded-lg p-6">
-          <h1 className="text-3xl font-semibold">Sales Practice Coach</h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-semibold">Sales Practice Coach</h1>
+            <Button 
+              variant="outline" 
+              onClick={toggleCoachingMode}
+              className="ml-4"
+            >
+              {showRealTimeCoaching ? "Switch to Standard Mode" : "Switch to Real-Time Coaching"}
+            </Button>
+          </div>
+          
           <p className="mt-4 text-muted-foreground">
             Practice your sales skills with our AI-powered coach.
           </p>
 
-          <ScenarioSelection
-            scenarios={scenarios}
-            selectedScenario={selectedScenario}
-            onScenarioChange={handleScenarioChange}
-          />
+          {showRealTimeCoaching ? (
+            <RealTimeCoaching />
+          ) : (
+            <>
+              <ScenarioSelection
+                scenarios={scenarios}
+                selectedScenario={selectedScenario}
+                onScenarioChange={handleScenarioChange}
+              />
 
-          <RecordingControls
-            isRecording={isRecording}
-            isConnecting={isConnecting}
-            isSpeaking={conversation.isSpeaking}
-            apiKeyValid={apiKeyValid}
-            onToggleRecording={toggleRecording}
-          />
+              <RecordingControls
+                isRecording={isRecording}
+                isConnecting={isConnecting}
+                isSpeaking={conversation.isSpeaking}
+                apiKeyValid={apiKeyValid}
+                onToggleRecording={toggleRecording}
+              />
 
-          <Instructions />
+              <Instructions />
+            </>
+          )}
         </div>
       </main>
     </div>
