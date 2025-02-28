@@ -11,6 +11,7 @@ import {
   delay, 
   getElevenLabsUrl 
 } from "../lib/elevenlabs";
+import { Button } from "@/components/ui/button";
 import { ScenarioSelection, Scenario } from "@/components/sales-coach/ScenarioSelection";
 import { RecordingControls } from "@/components/sales-coach/RecordingControls";
 import { Instructions } from "@/components/sales-coach/Instructions";
