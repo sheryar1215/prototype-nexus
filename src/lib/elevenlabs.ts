@@ -1,15 +1,16 @@
 
 // Improved ElevenLabs integration with better error handling
 
+// Use environment variable if available, otherwise check localStorage
+const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || "sk_c10fa210adaa16bf985bb421c5c6dc70a78441a61495e936";
+
 export const initializeElevenLabs = async () => {
-  // Try to get API key from localStorage
-  const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
+  // Try to get API key from localStorage or use the environment variable
+  const storedApiKey = localStorage.getItem("ELEVENLABS_API_KEY");
+  const apiKey = storedApiKey || ELEVENLABS_API_KEY;
   
   if (!apiKey) {
-    // Set the default API key if not found in localStorage
-    const defaultApiKey = "sk_c10fa210adaa16bf985bb421c5c6dc70a78441a61495e936";
-    localStorage.setItem("ELEVENLABS_API_KEY", defaultApiKey);
-    return defaultApiKey;
+    throw new Error("ElevenLabs API key not found. Please add your API key in Settings.");
   }
   
   try {
