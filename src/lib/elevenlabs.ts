@@ -1,7 +1,7 @@
 
 // Improved ElevenLabs integration with better error handling
 
-// Use environment variable if available, otherwise check localStorage
+// Use environment variable if available, otherwise fallback to default
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY || "sk_c10fa210adaa16bf985bb421c5c6dc70a78441a61495e936";
 
 export const initializeElevenLabs = async () => {
@@ -18,7 +18,7 @@ export const initializeElevenLabs = async () => {
     const response = await fetch("https://api.elevenlabs.io/v1/user", {
       headers: {
         "Accept": "application/json",
-        "xi-api-key": apiKey
+        "xi-api-key": apiKey // This is the correct header for ElevenLabs API
       }
     });
 

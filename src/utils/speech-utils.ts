@@ -74,7 +74,7 @@ export const playAudioResponse = async (
           stability: 0.5,
           similarity_boost: 0.75
         },
-        xi_api_key: apiKey,
+        xi_api_key: apiKey, // This is the correct field name for the message
         model_id: modelId
       };
       
