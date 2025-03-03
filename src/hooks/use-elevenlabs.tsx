@@ -22,6 +22,12 @@ export function useElevenLabs() {
     try {
       await initializeElevenLabs();
       setApiKeyValid(true);
+      
+      // Show success toast when API key is valid
+      toast({
+        title: "ElevenLabs API Connected",
+        description: "Voice coaching is ready to use.",
+      });
     } catch (error: any) {
       console.error("API Key validation failed:", error);
       setApiKeyValid(false);
