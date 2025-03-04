@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { useElevenLabs } from "@/hooks/use-elevenlabs";
@@ -13,7 +14,9 @@ import { Volume2 } from "lucide-react";
 export function RealTimeCoaching() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [coachingResponse, setCoachingResponse] = useState("");
+  const [audioPlaybackError, setAudioPlaybackError] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const {
     isRecording,
@@ -35,6 +38,11 @@ export function RealTimeCoaching() {
     setVoiceId
   } = useElevenLabs();
 
+  // Handle navigation to settings page
+  const navigateToSettings = () => {
+    navigate("/settings");
+  };
+
   // Auto-play audio feedback when a coaching response is received
   useEffect(() => {
     const playFeedback = async () => {
@@ -42,7 +50,14 @@ export function RealTimeCoaching() {
         const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
         if (apiKey) {
           try {
+            setAudioPlaybackError(null);
             setIsSpeaking(true);
+            
+            toast({
+              title: "Coach Speaking",
+              description: "Listen to the feedback from your sales coach.",
+            });
+            
             await playAudioResponse(
               coachingResponse,
               apiKey,
@@ -51,6 +66,8 @@ export function RealTimeCoaching() {
               getVoiceUrl,
               setIsSpeaking,
               (error) => {
+                console.error("Speech playback error:", error);
+                setAudioPlaybackError(error.message);
                 toast({
                   variant: "destructive",
                   title: "Speech Error",
@@ -62,6 +79,7 @@ export function RealTimeCoaching() {
           } catch (error) {
             console.error("Error playing audio feedback:", error);
             setIsSpeaking(false);
+            setAudioPlaybackError(error instanceof Error ? error.message : "Unknown error occurred");
           }
         }
       }
@@ -83,10 +101,18 @@ export function RealTimeCoaching() {
       
       if (audioBlob) {
         try {
+          // Get AI analysis of the sales pitch
           const coachingFeedback = await getAIAnalysis(audioBlob);
           setCoachingResponse(coachingFeedback);
           
           // Audio feedback will automatically be played by the useEffect above
+          if (!apiKeyValid) {
+            toast({
+              variant: "warning",
+              title: "Voice Feedback Unavailable",
+              description: "Add your ElevenLabs API key in Settings to hear verbal feedback.",
+            });
+          }
         } catch (error) {
           console.error("Error processing speech:", error);
           toast({
@@ -105,16 +131,16 @@ export function RealTimeCoaching() {
         const isValid = await checkApiKey();
         if (!isValid) {
           toast({
-            variant: "destructive",
-            title: "API Key Required",
-            description: "Please add your ElevenLabs API key in Settings to use voice coaching.",
+            variant: "warning",
+            title: "API Key Missing",
+            description: "Please add your ElevenLabs API key in Settings for voice coaching.",
           });
-          return;
         }
       }
       
       // Clear previous coaching response
       setCoachingResponse("");
+      setAudioPlaybackError(null);
       
       // Start recording
       const success = await startRecording();
@@ -123,6 +149,35 @@ export function RealTimeCoaching() {
           title: "Recording Started",
           description: "Speak your sales pitch clearly into the microphone.",
         });
+      }
+    }
+  };
+
+  // Retry audio playback if there was an error
+  const retryAudioPlayback = async () => {
+    if (coachingResponse && apiKeyValid) {
+      setAudioPlaybackError(null);
+      const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
+      
+      if (apiKey) {
+        try {
+          setIsSpeaking(true);
+          await playAudioResponse(
+            coachingResponse,
+            apiKey,
+            voiceId,
+            modelId,
+            getVoiceUrl,
+            setIsSpeaking,
+            (error) => {
+              setAudioPlaybackError(error.message);
+              setIsSpeaking(false);
+            }
+          );
+        } catch (error) {
+          console.error("Error retrying audio playback:", error);
+          setIsSpeaking(false);
+        }
       }
     }
   };
@@ -146,7 +201,7 @@ export function RealTimeCoaching() {
         isRecording={isRecording}
         isProcessing={isProcessing}
         isSpeaking={isSpeaking}
-        apiKeyValid={apiKeyValid}
+        apiKeyValid={true} // Allow recording even without API key
         onToggleRecording={toggleRecording}
       />
       
@@ -166,7 +221,24 @@ export function RealTimeCoaching() {
         onSaveRecording={saveRecording}
       />
       
-      <ApiKeyWarning apiKeyValid={apiKeyValid} />
+      {audioPlaybackError && (
+        <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-md">
+          <p className="text-sm font-medium">Audio playback error: {audioPlaybackError}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-2 bg-red-200 hover:bg-red-300 border-red-300" 
+            onClick={retryAudioPlayback}
+          >
+            Retry Speech
+          </Button>
+        </div>
+      )}
+      
+      <ApiKeyWarning 
+        apiKeyValid={apiKeyValid} 
+        onSettingsClick={navigateToSettings}
+      />
     </div>
   );
 }

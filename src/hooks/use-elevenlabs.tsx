@@ -10,18 +10,29 @@ import {
 
 export function useElevenLabs() {
   const [apiKeyValid, setApiKeyValid] = useState(false);
+  const [isCheckingApiKey, setIsCheckingApiKey] = useState(false);
   const [selectedVoiceId, setSelectedVoiceId] = useState(ELEVENLABS_VOICE_ID);
   const { toast } = useToast();
   
   useEffect(() => {
     // Check if API key is valid on mount
     checkApiKey();
+    
+    // Get saved voice ID from localStorage
+    const savedVoiceId = localStorage.getItem("ELEVENLABS_VOICE_ID");
+    if (savedVoiceId) {
+      setSelectedVoiceId(savedVoiceId);
+    }
   }, []);
 
   const checkApiKey = async () => {
+    if (isCheckingApiKey) return false;
+    
     try {
+      setIsCheckingApiKey(true);
       await initializeElevenLabs();
       setApiKeyValid(true);
+      setIsCheckingApiKey(false);
       
       // Show success toast when API key is valid
       toast({
@@ -32,11 +43,16 @@ export function useElevenLabs() {
     } catch (error: any) {
       console.error("API Key validation failed:", error);
       setApiKeyValid(false);
-      toast({
-        variant: "destructive",
-        title: "Voice Feedback Unavailable",
-        description: error.message || "Please add a valid ElevenLabs API key in Settings for voice feedback",
-      });
+      setIsCheckingApiKey(false);
+      
+      // Only show toast if this wasn't an initial check
+      if (localStorage.getItem("ELEVENLABS_API_KEY")) {
+        toast({
+          variant: "destructive",
+          title: "Voice Feedback Unavailable",
+          description: error.message || "Please add a valid ElevenLabs API key in Settings for voice feedback",
+        });
+      }
       return false;
     }
   };
@@ -54,6 +70,7 @@ export function useElevenLabs() {
 
   return {
     apiKeyValid,
+    isCheckingApiKey,
     checkApiKey,
     getVoiceUrl: getElevenLabsUrl,
     modelId: ELEVENLABS_MODEL_ID,

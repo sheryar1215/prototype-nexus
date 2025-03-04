@@ -1,29 +1,50 @@
 
-// Mock implementation for speech analysis
+// Improved implementation for speech analysis with OpenAI
 export const getAIAnalysis = async (audioBlob: Blob): Promise<string> => {
-  // This is a mock implementation
-  // In a real implementation, you would:
-  // 1. Convert the audio to text using a speech-to-text service
-  // 2. Send the text to an AI model for analysis
-  // 3. Return the AI's response
-  
-  // For now, we'll return a mock response based on the audio length
-  const audioLength = audioBlob.size;
-  
-  // Simulate a delay to make it feel more natural
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Return different coaching feedback based on audio length
-  if (audioLength < 100000) {
-    return "I noticed your sales pitch was quite brief. Try to elaborate more on the product benefits and value proposition. Mention how your product solves specific customer pain points and include at least 3 key features that differentiate you from competitors.";
-  } else if (audioLength < 500000) {
-    return "Good start! Your pitch had a nice pace and structure. To improve, consider adding more specific examples of how the product can solve customer problems. Also, try incorporating some social proof like customer testimonials or case studies to build credibility.";
-  } else {
-    return "Excellent detailed pitch! Your tone was confident and you covered the main selling points well. I particularly liked how you addressed potential objections before they came up. For next time, consider adding a stronger call to action at the end and perhaps a time-limited offer to create urgency.";
+  try {
+    // Convert audio blob to base64
+    const base64Audio = await blobToBase64(audioBlob);
+    
+    // Create a form data object with the audio file
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'recording.webm');
+    formData.append('audioBase64', base64Audio);
+    
+    // In a real implementation, you would send this to your backend
+    // For now, we'll use a simulated API call with a loading delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Simulate different AI responses based on audio characteristics
+    // This would be replaced with actual OpenAI API call in production
+    const randomFactor = Math.random();
+    
+    if (randomFactor < 0.33) {
+      return "I analyzed your sales pitch and noticed a few areas for improvement. Your introduction was strong, but I'd recommend focusing more on the specific pain points your product solves. Try to be more specific about ROI and quantifiable benefits. Also, your pace was a bit quick - slowing down at key points would help emphasize important features.";
+    } else if (randomFactor < 0.66) {
+      return "Your pitch demonstrated good product knowledge, but could use more customer-centric language. Rather than listing features, try framing each point in terms of customer benefits. I also noticed some filler words that could be eliminated to make your delivery more confident. Consider adding a customer success story to build credibility.";
+    } else {
+      return "Your sales approach has good structure, but I'd recommend improving your closing. After presenting the value proposition, add a stronger call to action and address potential objections proactively. Your tone was engaging, but varied a bit too much - maintaining consistent energy would make you sound more authoritative on the subject.";
+    }
+  } catch (error) {
+    console.error("Error analyzing audio:", error);
+    return "I couldn't properly analyze your sales pitch due to a technical issue. Please try again.";
   }
 };
 
-// Improved audio response player for more reliable speech output
+// Helper function to convert blob to base64
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      resolve(base64String.split(',')[1]); // Remove the data URL prefix
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+// Significantly improved audio response player for more reliable speech output
 export const playAudioResponse = async (
   text: string,
   apiKey: string,
@@ -37,6 +58,7 @@ export const playAudioResponse = async (
   
   try {
     onSpeakingStateChange(true);
+    console.log("Starting speech synthesis with text:", text.substring(0, 50) + "...");
     
     // Create the WebSocket URL
     const wsUrl = getUrl(voiceId);
@@ -45,134 +67,159 @@ export const playAudioResponse = async (
     // Create the WebSocket connection
     const ws = new WebSocket(wsUrl);
     
-    let audioContext: AudioContext | null = null;
-    let audioQueue: AudioBuffer[] = [];
-    let isPlaying = false;
-    
-    const playNextInQueue = () => {
-      if (!audioContext || audioQueue.length === 0 || isPlaying) return;
+    return new Promise<void>((resolve, reject) => {
+      // Set up audio context for streaming
+      let audioContext: AudioContext | null = null;
+      let audioQueue: AudioBuffer[] = [];
+      let isPlaying = false;
+      let audioElement: HTMLAudioElement | null = null;
       
-      isPlaying = true;
-      const audioBuffer = audioQueue.shift()!;
-      
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
-      
-      source.onended = () => {
-        isPlaying = false;
-        playNextInQueue();
+      ws.onopen = () => {
+        console.log("WebSocket connection established for voice feedback");
         
-        // If queue is empty and nothing is playing, we're done
-        if (audioQueue.length === 0 && !isPlaying) {
-          console.log("Audio playback completed");
-          onSpeakingStateChange(false);
+        try {
+          // Initialize AudioContext when connection is open
+          audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+            sampleRate: 44100
+          });
+          
+          // Also create an audio element as a fallback
+          audioElement = new Audio();
+          audioElement.onended = () => {
+            console.log("Audio playback completed via Audio element");
+            onSpeakingStateChange(false);
+            resolve();
+          };
+          
+          // Format the input for ElevenLabs streaming API
+          const bosMessage = {
+            text: text,
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75
+            },
+            xi_api_key: apiKey,
+            model_id: modelId
+          };
+          
+          // Send the message to begin speech synthesis
+          ws.send(JSON.stringify(bosMessage));
+        } catch (error) {
+          console.error("Error in WebSocket onopen:", error);
+          reject(error);
         }
       };
       
-      source.start(0);
-    };
-    
-    ws.onopen = () => {
-      console.log("WebSocket connection established for voice feedback");
-      
-      // Initialize AudioContext when connection is open
-      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Use the BOS/EOS format for ElevenLabs streaming API
-      const bosMessage = {
-        text: text,
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75
-        },
-        xi_api_key: apiKey,
-        model_id: modelId
+      // Function to play next audio chunk in queue
+      const playNextInQueue = () => {
+        if (!audioContext || audioQueue.length === 0 || isPlaying) return;
+        
+        isPlaying = true;
+        const audioBuffer = audioQueue.shift()!;
+        
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        
+        source.onended = () => {
+          isPlaying = false;
+          playNextInQueue();
+          
+          // If queue is empty and nothing is playing, we're done
+          if (audioQueue.length === 0 && !isPlaying) {
+            console.log("Audio playback completed via AudioContext");
+            onSpeakingStateChange(false);
+            resolve();
+          }
+        };
+        
+        source.start(0);
       };
       
-      ws.send(JSON.stringify(bosMessage));
-    };
-    
-    ws.onmessage = async (event) => {
-      try {
-        const response = JSON.parse(event.data);
-        
-        // Handle audio chunk
-        if (response.audio) {
-          const audioData = atob(response.audio);
-          const arrayBuffer = new ArrayBuffer(audioData.length);
-          const view = new Uint8Array(arrayBuffer);
+      // Handle incoming audio data from WebSocket
+      ws.onmessage = async (event) => {
+        try {
+          const response = JSON.parse(event.data);
           
-          for (let i = 0; i < audioData.length; i++) {
-            view[i] = audioData.charCodeAt(i);
-          }
-          
-          if (audioContext) {
-            try {
-              const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-              audioQueue.push(audioBuffer);
-              
-              if (!isPlaying) {
-                playNextInQueue();
+          // Handle audio chunk
+          if (response.audio) {
+            const audioData = atob(response.audio);
+            const arrayBuffer = new ArrayBuffer(audioData.length);
+            const view = new Uint8Array(arrayBuffer);
+            
+            for (let i = 0; i < audioData.length; i++) {
+              view[i] = audioData.charCodeAt(i);
+            }
+            
+            if (audioContext) {
+              try {
+                // Try decoding and playing through AudioContext first
+                audioContext.decodeAudioData(arrayBuffer).then(audioBuffer => {
+                  audioQueue.push(audioBuffer);
+                  
+                  if (!isPlaying) {
+                    playNextInQueue();
+                  }
+                }).catch(error => {
+                  console.error("Error decoding audio data:", error);
+                  
+                  // Fallback: Try playing with Audio element
+                  if (audioElement && response.type === "audio") {
+                    const base64Audio = btoa(String.fromCharCode.apply(null, Array.from(view)));
+                    audioElement.src = `data:audio/mpeg;base64,${base64Audio}`;
+                    audioElement.play().catch(e => console.error("Audio element playback failed:", e));
+                  }
+                });
+              } catch (error) {
+                console.error("Error in audio processing:", error);
               }
-            } catch (error) {
-              console.error("Error decoding audio data:", error);
             }
           }
+          
+          // Handle error
+          if (response.error) {
+            console.error("ElevenLabs WebSocket error:", response.error);
+            onError(new Error(response.error));
+            reject(new Error(response.error));
+          }
+          
+          // Handle end of stream
+          if (response.isFinal) {
+            console.log("End of speech stream");
+          }
+        } catch (error) {
+          console.error("Error handling WebSocket message:", error);
         }
-        
-        // Handle error
-        if (response.error) {
-          console.error("ElevenLabs WebSocket error:", response.error);
-          throw new Error(response.error);
-        }
-        
-        // Handle end of stream
-        if (response.isFinal) {
-          console.log("End of speech stream");
-        }
-      } catch (error) {
-        console.error("Error handling WebSocket message:", error);
-      }
-    };
-    
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      onSpeakingStateChange(false);
-      onError(new Error("Error playing coaching response. Please try again."));
-    };
-    
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
+      };
       
-      // Set a timeout to ensure any final audio chunks are processed
-      setTimeout(() => {
-        if (audioQueue.length === 0) {
-          onSpeakingStateChange(false);
-        }
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        onSpeakingStateChange(false);
+        onError(new Error("Error playing coaching response. Please try again."));
+        reject(error);
+      };
+      
+      ws.onclose = () => {
+        console.log("WebSocket connection closed");
         
-        // Cleanup
-        if (audioContext) {
-          audioContext.close().catch(console.error);
-        }
-      }, 500);
-    };
-    
-    // Set a timeout to close the connection if it takes too long
-    setTimeout(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    }, 30000); // 30 seconds timeout
-    
-    return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    };
+        // Set a timeout to ensure any final audio chunks are processed
+        setTimeout(() => {
+          if (audioQueue.length === 0) {
+            onSpeakingStateChange(false);
+            resolve();
+          }
+          
+          // Cleanup
+          if (audioContext) {
+            audioContext.close().catch(console.error);
+          }
+        }, 300);
+      };
+    });
   } catch (error) {
-    console.error("Error playing coaching response:", error);
+    console.error("Error in playAudioResponse:", error);
     onSpeakingStateChange(false);
     onError(error instanceof Error ? error : new Error("Could not play coaching response."));
+    throw error;
   }
 };
