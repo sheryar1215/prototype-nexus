@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { useElevenLabs } from "@/hooks/use-elevenlabs";
@@ -8,6 +8,7 @@ import { RecordingButton } from "./RecordingButton";
 import { CoachingResponse } from "./CoachingResponse";
 import { ApiKeyWarning } from "./ApiKeyWarning";
 import { VoiceSelector } from "./VoiceSelector";
+import { Volume2 } from "lucide-react";
 
 export function RealTimeCoaching() {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -34,21 +35,15 @@ export function RealTimeCoaching() {
     setVoiceId
   } = useElevenLabs();
 
-  const toggleRecording = async () => {
-    if (isRecording) {
-      stopRecording();
-      const audioBlob = await getRecordedAudio();
-      
-      if (audioBlob) {
-        try {
-          const coachingFeedback = await getAIAnalysis(audioBlob);
-          setCoachingResponse(coachingFeedback);
-          
-          // Get the API key for ElevenLabs
-          const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
-          if (apiKey) {
+  // Auto-play audio feedback when a coaching response is received
+  useEffect(() => {
+    const playFeedback = async () => {
+      if (coachingResponse && !isSpeaking && apiKeyValid) {
+        const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
+        if (apiKey) {
+          try {
             await playAudioResponse(
-              coachingFeedback,
+              coachingResponse,
               apiKey,
               voiceId,
               modelId,
@@ -62,7 +57,27 @@ export function RealTimeCoaching() {
                 });
               }
             );
+          } catch (error) {
+            console.error("Error playing audio feedback:", error);
           }
+        }
+      }
+    };
+
+    playFeedback();
+  }, [coachingResponse, apiKeyValid]);
+
+  const toggleRecording = async () => {
+    if (isRecording) {
+      stopRecording();
+      const audioBlob = await getRecordedAudio();
+      
+      if (audioBlob) {
+        try {
+          const coachingFeedback = await getAIAnalysis(audioBlob);
+          setCoachingResponse(coachingFeedback);
+          
+          // Audio feedback will now be automatically played by the useEffect above
         } catch (error) {
           console.error("Error processing speech:", error);
           toast({
@@ -107,6 +122,15 @@ export function RealTimeCoaching() {
         apiKeyValid={apiKeyValid}
         onToggleRecording={toggleRecording}
       />
+      
+      {isSpeaking && (
+        <div className="mt-6 flex flex-col items-center justify-center">
+          <div className="glass animate-pulse rounded-full p-4 mb-2">
+            <Volume2 className="h-6 w-6 text-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground">Coach is speaking...</p>
+        </div>
+      )}
       
       <CoachingResponse
         coachingResponse={coachingResponse}

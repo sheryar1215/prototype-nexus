@@ -1,4 +1,5 @@
 
+// Mock implementation for speech analysis
 export const getAIAnalysis = async (audioBlob: Blob): Promise<string> => {
   // This is a mock implementation
   // In a real implementation, you would:
@@ -9,15 +10,17 @@ export const getAIAnalysis = async (audioBlob: Blob): Promise<string> => {
   // For now, we'll return a mock response based on the audio length
   const audioLength = audioBlob.size;
   
+  // Return different coaching feedback based on audio length
   if (audioLength < 100000) {
-    return "Your sales pitch was too brief. Try to elaborate more on the product benefits and value proposition.";
+    return "I noticed your sales pitch was quite brief. Try to elaborate more on the product benefits and value proposition. Mention how your product solves specific customer pain points and include at least 3 key features that differentiate you from competitors.";
   } else if (audioLength < 500000) {
-    return "Good start! Your pitch had a nice pace, but consider adding more specific examples of how the product can solve customer problems.";
+    return "Good start! Your pitch had a nice pace and structure. To improve, consider adding more specific examples of how the product can solve customer problems. Also, try incorporating some social proof like customer testimonials or case studies to build credibility.";
   } else {
-    return "Excellent detailed pitch! Your tone was confident and you covered the main selling points well. Consider adding a stronger call to action at the end.";
+    return "Excellent detailed pitch! Your tone was confident and you covered the main selling points well. I particularly liked how you addressed potential objections before they came up. For next time, consider adding a stronger call to action at the end and perhaps a time-limited offer to create urgency.";
   }
 };
 
+// Improved audio response player for more reliable speech output
 export const playAudioResponse = async (
   text: string,
   apiKey: string,
@@ -34,7 +37,7 @@ export const playAudioResponse = async (
     
     // Create the WebSocket URL
     const wsUrl = getUrl(voiceId);
-    console.log("Connecting to ElevenLabs:", wsUrl);
+    console.log("Connecting to ElevenLabs for voice feedback:", wsUrl);
     
     // Create the WebSocket connection
     const ws = new WebSocket(wsUrl);
@@ -56,13 +59,19 @@ export const playAudioResponse = async (
       source.onended = () => {
         isPlaying = false;
         playNextInQueue();
+        
+        // If queue is empty and nothing is playing, we're done
+        if (audioQueue.length === 0 && !isPlaying) {
+          console.log("Audio playback completed");
+          onSpeakingStateChange(false);
+        }
       };
       
       source.start(0);
     };
     
     ws.onopen = () => {
-      console.log("WebSocket connection established");
+      console.log("WebSocket connection established for voice feedback");
       
       // Initialize AudioContext when connection is open
       audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -74,7 +83,7 @@ export const playAudioResponse = async (
           stability: 0.5,
           similarity_boost: 0.75
         },
-        xi_api_key: apiKey, // This is the correct field name for the message
+        xi_api_key: apiKey,
         model_id: modelId
       };
       
@@ -132,12 +141,18 @@ export const playAudioResponse = async (
     
     ws.onclose = () => {
       console.log("WebSocket connection closed");
-      onSpeakingStateChange(false);
       
-      // Cleanup
-      if (audioContext) {
-        audioContext.close().catch(console.error);
-      }
+      // Set a timeout to ensure any final audio chunks are processed
+      setTimeout(() => {
+        if (audioQueue.length === 0) {
+          onSpeakingStateChange(false);
+        }
+        
+        // Cleanup
+        if (audioContext) {
+          audioContext.close().catch(console.error);
+        }
+      }, 500);
     };
     
     // Set a timeout to close the connection if it takes too long

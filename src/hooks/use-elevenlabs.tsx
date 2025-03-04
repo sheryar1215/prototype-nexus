@@ -25,22 +25,31 @@ export function useElevenLabs() {
       
       // Show success toast when API key is valid
       toast({
-        title: "ElevenLabs API Connected",
-        description: "Voice coaching is ready to use.",
+        title: "Voice Coaching Ready",
+        description: "ElevenLabs API connected successfully. Voice feedback is enabled.",
       });
+      return true;
     } catch (error: any) {
       console.error("API Key validation failed:", error);
       setApiKeyValid(false);
       toast({
         variant: "destructive",
-        title: "API Key Error",
-        description: error.message || "Please add a valid ElevenLabs API key in Settings",
+        title: "Voice Feedback Unavailable",
+        description: error.message || "Please add a valid ElevenLabs API key in Settings for voice feedback",
       });
+      return false;
     }
   };
 
   const handleVoiceChange = (voiceId: string) => {
     setSelectedVoiceId(voiceId);
+    // Save the selected voice to localStorage for persistence
+    localStorage.setItem("ELEVENLABS_VOICE_ID", voiceId);
+    
+    toast({
+      title: "Voice Changed",
+      description: "The coach's voice has been updated.",
+    });
   };
 
   return {

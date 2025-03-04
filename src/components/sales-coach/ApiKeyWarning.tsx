@@ -11,6 +11,7 @@ export function ApiKeyWarning({ apiKeyValid }: ApiKeyWarningProps) {
       <p className="text-sm">
         ElevenLabs API key is not valid. A default API key is configured, 
         but you may need to add your own key in the Settings page for best results.
+        Voice feedback requires a valid API key to work properly.
       </p>
     </div>
   );
