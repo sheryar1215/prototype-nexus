@@ -10,6 +10,7 @@ import { CoachingResponse } from "./CoachingResponse";
 import { ApiKeyWarning } from "./ApiKeyWarning";
 import { VoiceSelector } from "./VoiceSelector";
 import { Volume2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function RealTimeCoaching() {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -108,7 +109,7 @@ export function RealTimeCoaching() {
           // Audio feedback will automatically be played by the useEffect above
           if (!apiKeyValid) {
             toast({
-              variant: "warning",
+              variant: "default",
               title: "Voice Feedback Unavailable",
               description: "Add your ElevenLabs API key in Settings to hear verbal feedback.",
             });
@@ -131,7 +132,7 @@ export function RealTimeCoaching() {
         const isValid = await checkApiKey();
         if (!isValid) {
           toast({
-            variant: "warning",
+            variant: "default",
             title: "API Key Missing",
             description: "Please add your ElevenLabs API key in Settings for voice coaching.",
           });
