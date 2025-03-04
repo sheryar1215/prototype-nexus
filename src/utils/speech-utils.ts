@@ -1,4 +1,3 @@
-
 // Improved implementation for speech analysis with OpenAI
 export const getAIAnalysis = async (audioBlob: Blob): Promise<string> => {
   try {
@@ -136,7 +135,7 @@ export const playAudioResponse = async (
         source.start(0);
       };
       
-      // Handle incoming audio data from WebSocket
+      // Handle incoming messages from WebSocket
       ws.onmessage = async (event) => {
         try {
           const response = JSON.parse(event.data);
@@ -176,11 +175,26 @@ export const playAudioResponse = async (
             }
           }
           
-          // Handle error
+          // Handle error - improved error handling
           if (response.error) {
             console.error("ElevenLabs WebSocket error:", response.error);
-            onError(new Error(response.error));
+            
+            // Close the connection gracefully
+            try {
+              ws.close();
+            } catch (e) {
+              console.error("Error closing WebSocket:", e);
+            }
+            
+            // Handle specific errors
+            if (response.error === "detected_unusual_activity") {
+              onError(new Error("detected_unusual_activity"));
+            } else {
+              onError(new Error(response.error));
+            }
+            
             reject(new Error(response.error));
+            return;
           }
           
           // Handle end of stream
@@ -195,25 +209,28 @@ export const playAudioResponse = async (
       ws.onerror = (error) => {
         console.error("WebSocket error:", error);
         onSpeakingStateChange(false);
-        onError(new Error("Error playing coaching response. Please try again."));
+        onError(new Error("Connection error with ElevenLabs. Please try again."));
         reject(error);
       };
       
-      ws.onclose = () => {
-        console.log("WebSocket connection closed");
+      ws.onclose = (event) => {
+        console.log("WebSocket connection closed", event.code, event.reason);
         
-        // Set a timeout to ensure any final audio chunks are processed
-        setTimeout(() => {
-          if (audioQueue.length === 0) {
-            onSpeakingStateChange(false);
-            resolve();
-          }
-          
-          // Cleanup
-          if (audioContext) {
-            audioContext.close().catch(console.error);
-          }
-        }, 300);
+        // If this was not an error closure, resolve normally
+        if (event.code === 1000) {
+          // Set a timeout to ensure any final audio chunks are processed
+          setTimeout(() => {
+            if (audioQueue.length === 0) {
+              onSpeakingStateChange(false);
+              resolve();
+            }
+            
+            // Cleanup
+            if (audioContext) {
+              audioContext.close().catch(console.error);
+            }
+          }, 300);
+        }
       };
     });
   } catch (error) {

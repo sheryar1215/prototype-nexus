@@ -8,6 +8,14 @@ export function useAudioPlayback() {
   const [audioPlaybackError, setAudioPlaybackError] = useState<string | null>(null);
   const { toast } = useToast();
   
+  // Format error message for toast notifications
+  const formatErrorMessage = (error: string): string => {
+    if (error === "detected_unusual_activity") {
+      return "ElevenLabs detected unusual activity. Please check your account or try again later.";
+    }
+    return error;
+  };
+  
   const playFeedback = async (
     coachingResponse: string,
     apiKeyValid: boolean,
@@ -36,19 +44,28 @@ export function useAudioPlayback() {
             setIsSpeaking,
             (error) => {
               console.error("Speech playback error:", error);
-              setAudioPlaybackError(error.message);
+              const errorMsg = error.message || "Unknown error";
+              setAudioPlaybackError(errorMsg);
+              
               toast({
                 variant: "destructive",
                 title: "Speech Error",
-                description: error.message,
+                description: formatErrorMessage(errorMsg),
               });
               setIsSpeaking(false);
             }
           );
         } catch (error) {
           console.error("Error playing audio feedback:", error);
+          const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
           setIsSpeaking(false);
-          setAudioPlaybackError(error instanceof Error ? error.message : "Unknown error occurred");
+          setAudioPlaybackError(errorMsg);
+          
+          toast({
+            variant: "destructive",
+            title: "Speech Error",
+            description: formatErrorMessage(errorMsg),
+          });
         }
       }
     }
@@ -68,6 +85,12 @@ export function useAudioPlayback() {
       if (apiKey) {
         try {
           setIsSpeaking(true);
+          
+          toast({
+            title: "Retrying Speech",
+            description: "Connecting to ElevenLabs voice service...",
+          });
+          
           await playAudioResponse(
             coachingResponse,
             apiKey,
@@ -76,13 +99,29 @@ export function useAudioPlayback() {
             getVoiceUrl,
             setIsSpeaking,
             (error) => {
-              setAudioPlaybackError(error.message);
+              const errorMsg = error.message || "Unknown error";
+              setAudioPlaybackError(errorMsg);
               setIsSpeaking(false);
+              
+              toast({
+                variant: "destructive",
+                title: "Speech Error",
+                description: formatErrorMessage(errorMsg),
+              });
             }
           );
         } catch (error) {
           console.error("Error retrying audio playback:", error);
           setIsSpeaking(false);
+          
+          const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+          setAudioPlaybackError(errorMsg);
+          
+          toast({
+            variant: "destructive",
+            title: "Speech Error",
+            description: formatErrorMessage(errorMsg),
+          });
         }
       }
     }
