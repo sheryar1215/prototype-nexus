@@ -4,18 +4,17 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { useElevenLabs } from "@/hooks/use-elevenlabs";
-import { getAIAnalysis, playAudioResponse } from "@/utils/speech-utils";
+import { useAudioPlayback } from "@/hooks/use-audio-playback";
+import { getAIAnalysis } from "@/utils/speech-utils";
 import { RecordingButton } from "./RecordingButton";
 import { CoachingResponse } from "./CoachingResponse";
 import { ApiKeyWarning } from "./ApiKeyWarning";
 import { VoiceSelector } from "./VoiceSelector";
-import { Volume2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { SpeakingIndicator } from "./SpeakingIndicator";
+import { AudioErrorMessage } from "./AudioErrorMessage";
 
 export function RealTimeCoaching() {
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [coachingResponse, setCoachingResponse] = useState("");
-  const [audioPlaybackError, setAudioPlaybackError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -39,6 +38,14 @@ export function RealTimeCoaching() {
     setVoiceId
   } = useElevenLabs();
 
+  const {
+    isSpeaking,
+    audioPlaybackError,
+    setAudioPlaybackError,
+    playFeedback,
+    retryAudioPlayback
+  } = useAudioPlayback();
+
   // Handle navigation to settings page
   const navigateToSettings = () => {
     navigate("/settings");
@@ -46,47 +53,7 @@ export function RealTimeCoaching() {
 
   // Auto-play audio feedback when a coaching response is received
   useEffect(() => {
-    const playFeedback = async () => {
-      if (coachingResponse && !isSpeaking && apiKeyValid) {
-        const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
-        if (apiKey) {
-          try {
-            setAudioPlaybackError(null);
-            setIsSpeaking(true);
-            
-            toast({
-              title: "Coach Speaking",
-              description: "Listen to the feedback from your sales coach.",
-            });
-            
-            await playAudioResponse(
-              coachingResponse,
-              apiKey,
-              voiceId,
-              modelId,
-              getVoiceUrl,
-              setIsSpeaking,
-              (error) => {
-                console.error("Speech playback error:", error);
-                setAudioPlaybackError(error.message);
-                toast({
-                  variant: "destructive",
-                  title: "Speech Error",
-                  description: error.message,
-                });
-                setIsSpeaking(false);
-              }
-            );
-          } catch (error) {
-            console.error("Error playing audio feedback:", error);
-            setIsSpeaking(false);
-            setAudioPlaybackError(error instanceof Error ? error.message : "Unknown error occurred");
-          }
-        }
-      }
-    };
-
-    playFeedback();
+    playFeedback(coachingResponse, apiKeyValid, voiceId, modelId, getVoiceUrl);
   }, [coachingResponse, apiKeyValid]);
 
   const toggleRecording = async () => {
@@ -121,7 +88,6 @@ export function RealTimeCoaching() {
             title: "Processing Error",
             description: "Could not process your speech. Please try again.",
           });
-          setIsSpeaking(false);
         } finally {
           completeProcessing();
         }
@@ -155,32 +121,8 @@ export function RealTimeCoaching() {
   };
 
   // Retry audio playback if there was an error
-  const retryAudioPlayback = async () => {
-    if (coachingResponse && apiKeyValid) {
-      setAudioPlaybackError(null);
-      const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
-      
-      if (apiKey) {
-        try {
-          setIsSpeaking(true);
-          await playAudioResponse(
-            coachingResponse,
-            apiKey,
-            voiceId,
-            modelId,
-            getVoiceUrl,
-            setIsSpeaking,
-            (error) => {
-              setAudioPlaybackError(error.message);
-              setIsSpeaking(false);
-            }
-          );
-        } catch (error) {
-          console.error("Error retrying audio playback:", error);
-          setIsSpeaking(false);
-        }
-      }
-    }
+  const handleRetryAudioPlayback = () => {
+    retryAudioPlayback(coachingResponse, apiKeyValid, voiceId, modelId, getVoiceUrl);
   };
 
   return (
@@ -206,14 +148,7 @@ export function RealTimeCoaching() {
         onToggleRecording={toggleRecording}
       />
       
-      {isSpeaking && (
-        <div className="mt-6 flex flex-col items-center justify-center">
-          <div className="glass animate-pulse rounded-full p-4 mb-2">
-            <Volume2 className="h-6 w-6 text-primary" />
-          </div>
-          <p className="text-sm text-muted-foreground">Coach is speaking...</p>
-        </div>
-      )}
+      {isSpeaking && <SpeakingIndicator />}
       
       <CoachingResponse
         coachingResponse={coachingResponse}
@@ -223,17 +158,10 @@ export function RealTimeCoaching() {
       />
       
       {audioPlaybackError && (
-        <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-md">
-          <p className="text-sm font-medium">Audio playback error: {audioPlaybackError}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-2 bg-red-200 hover:bg-red-300 border-red-300" 
-            onClick={retryAudioPlayback}
-          >
-            Retry Speech
-          </Button>
-        </div>
+        <AudioErrorMessage 
+          errorMessage={audioPlaybackError}
+          onRetry={handleRetryAudioPlayback}
+        />
       )}
       
       <ApiKeyWarning 
