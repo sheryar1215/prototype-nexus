@@ -19,7 +19,7 @@ export function CoachingResponse({
   
   return (
     <>
-      {coachingResponse && !isSpeaking && (
+      {(coachingResponse || isSpeaking) && (
         <div className="mt-6 p-4 bg-background/50 rounded-lg shadow">
           <div className="flex justify-between items-start">
             <h3 className="font-semibold mb-2">Coach Feedback:</h3>
@@ -35,7 +35,7 @@ export function CoachingResponse({
               </Button>
             )}
           </div>
-          <p>{coachingResponse}</p>
+          <p>{isSpeaking && !coachingResponse ? "Analyzing your sales pitch..." : coachingResponse}</p>
         </div>
       )}
     </>

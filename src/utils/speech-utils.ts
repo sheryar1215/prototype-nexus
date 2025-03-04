@@ -10,6 +10,9 @@ export const getAIAnalysis = async (audioBlob: Blob): Promise<string> => {
   // For now, we'll return a mock response based on the audio length
   const audioLength = audioBlob.size;
   
+  // Simulate a delay to make it feel more natural
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
   // Return different coaching feedback based on audio length
   if (audioLength < 100000) {
     return "I noticed your sales pitch was quite brief. Try to elaborate more on the product benefits and value proposition. Mention how your product solves specific customer pain points and include at least 3 key features that differentiate you from competitors.";

@@ -42,6 +42,7 @@ export function RealTimeCoaching() {
         const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
         if (apiKey) {
           try {
+            setIsSpeaking(true);
             await playAudioResponse(
               coachingResponse,
               apiKey,
@@ -55,10 +56,12 @@ export function RealTimeCoaching() {
                   title: "Speech Error",
                   description: error.message,
                 });
+                setIsSpeaking(false);
               }
             );
           } catch (error) {
             console.error("Error playing audio feedback:", error);
+            setIsSpeaking(false);
           }
         }
       }
@@ -70,6 +73,12 @@ export function RealTimeCoaching() {
   const toggleRecording = async () => {
     if (isRecording) {
       stopRecording();
+      
+      toast({
+        title: "Processing",
+        description: "Coach is listening to your pitch...",
+      });
+      
       const audioBlob = await getRecordedAudio();
       
       if (audioBlob) {
@@ -77,7 +86,7 @@ export function RealTimeCoaching() {
           const coachingFeedback = await getAIAnalysis(audioBlob);
           setCoachingResponse(coachingFeedback);
           
-          // Audio feedback will now be automatically played by the useEffect above
+          // Audio feedback will automatically be played by the useEffect above
         } catch (error) {
           console.error("Error processing speech:", error);
           toast({
@@ -85,6 +94,7 @@ export function RealTimeCoaching() {
             title: "Processing Error",
             description: "Could not process your speech. Please try again.",
           });
+          setIsSpeaking(false);
         } finally {
           completeProcessing();
         }
@@ -92,11 +102,28 @@ export function RealTimeCoaching() {
     } else {
       // First check if API key is valid
       if (!apiKeyValid) {
-        await checkApiKey();
-        if (!apiKeyValid) return;
+        const isValid = await checkApiKey();
+        if (!isValid) {
+          toast({
+            variant: "destructive",
+            title: "API Key Required",
+            description: "Please add your ElevenLabs API key in Settings to use voice coaching.",
+          });
+          return;
+        }
       }
       
-      startRecording();
+      // Clear previous coaching response
+      setCoachingResponse("");
+      
+      // Start recording
+      const success = await startRecording();
+      if (success) {
+        toast({
+          title: "Recording Started",
+          description: "Speak your sales pitch clearly into the microphone.",
+        });
+      }
     }
   };
 

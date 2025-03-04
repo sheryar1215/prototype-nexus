@@ -35,6 +35,11 @@ export function RecordingButton({
             <Loader2 className="mr-2 animate-spin" />
             Processing...
           </>
+        ) : isSpeaking ? (
+          <>
+            <Loader2 className="mr-2 animate-spin" />
+            Coach Speaking...
+          </>
         ) : (
           <>
             <Mic className="mr-2" />

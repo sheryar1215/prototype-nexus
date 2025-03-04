@@ -26,7 +26,7 @@ export function useElevenLabs() {
       // Show success toast when API key is valid
       toast({
         title: "Voice Coaching Ready",
-        description: "ElevenLabs API connected successfully. Voice feedback is enabled.",
+        description: "ElevenLabs voice is connected. The coach will speak to you.",
       });
       return true;
     } catch (error: any) {
