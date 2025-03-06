@@ -1,17 +1,11 @@
 
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  initializeElevenLabs, 
-  getElevenLabsUrl, 
-  ELEVENLABS_MODEL_ID, 
-  ELEVENLABS_VOICE_ID 
-} from "@/lib/elevenlabs";
 
 export function useElevenLabs() {
   const [apiKeyValid, setApiKeyValid] = useState(false);
   const [isCheckingApiKey, setIsCheckingApiKey] = useState(false);
-  const [selectedVoiceId, setSelectedVoiceId] = useState(ELEVENLABS_VOICE_ID);
+  const [selectedVoiceId, setSelectedVoiceId] = useState("21m00Tcm4TlvDq8ikWAM"); // Default voice ID
   const { toast } = useToast();
   
   useEffect(() => {
@@ -30,7 +24,30 @@ export function useElevenLabs() {
     
     try {
       setIsCheckingApiKey(true);
-      await initializeElevenLabs();
+      
+      // Get API key from localStorage
+      const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
+      
+      if (!apiKey) {
+        setApiKeyValid(false);
+        setIsCheckingApiKey(false);
+        return false;
+      }
+      
+      // Validate API key with a simple request
+      const response = await fetch("https://api.elevenlabs.io/v1/user", {
+        headers: {
+          "Accept": "application/json",
+          "xi-api-key": apiKey
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(response.status === 401 
+          ? "Invalid ElevenLabs API key" 
+          : `ElevenLabs API error (${response.status})`);
+      }
+      
       setApiKeyValid(true);
       setIsCheckingApiKey(false);
       
@@ -68,12 +85,16 @@ export function useElevenLabs() {
     });
   };
 
+  const getVoiceUrl = (voiceId: string) => {
+    return `wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input?model_id=eleven_multilingual_v2`;
+  };
+
   return {
     apiKeyValid,
     isCheckingApiKey,
     checkApiKey,
-    getVoiceUrl: getElevenLabsUrl,
-    modelId: ELEVENLABS_MODEL_ID,
+    getVoiceUrl,
+    modelId: "eleven_multilingual_v2",
     voiceId: selectedVoiceId,
     setVoiceId: handleVoiceChange
   };

@@ -5,7 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { useElevenLabs } from "@/hooks/use-elevenlabs";
 import { useAudioPlayback } from "@/hooks/use-audio-playback";
-import { getAIAnalysis } from "@/utils/speech-utils";
 import { RecordingButton } from "./RecordingButton";
 import { CoachingResponse } from "./CoachingResponse";
 import { ApiKeyWarning } from "./ApiKeyWarning";
@@ -14,7 +13,7 @@ import { SpeakingIndicator } from "./SpeakingIndicator";
 import { AudioErrorMessage } from "./AudioErrorMessage";
 
 export function RealTimeCoaching() {
-  const [coachingResponse, setCoachingResponse] = useState("");
+  const [coachingResponse, setCoachingResponse] = useState("Your pitch demonstrated good product knowledge, but could benefit from more customer-focused benefits. Try connecting features to customer needs and include a stronger call to action. Remember to pause between key points to let information sink in.");
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -53,7 +52,9 @@ export function RealTimeCoaching() {
 
   // Auto-play audio feedback when a coaching response is received
   useEffect(() => {
-    playFeedback(coachingResponse, apiKeyValid, voiceId, modelId, getVoiceUrl);
+    if (coachingResponse) {
+      playFeedback(coachingResponse, apiKeyValid, voiceId, modelId, getVoiceUrl);
+    }
   }, [coachingResponse, apiKeyValid]);
 
   const toggleRecording = async () => {
@@ -69,18 +70,12 @@ export function RealTimeCoaching() {
       
       if (audioBlob) {
         try {
-          // Get AI analysis of the sales pitch
-          const coachingFeedback = await getAIAnalysis(audioBlob);
-          setCoachingResponse(coachingFeedback);
-          
-          // Audio feedback will automatically be played by the useEffect above
-          if (!apiKeyValid) {
-            toast({
-              variant: "default",
-              title: "Voice Feedback Unavailable",
-              description: "Add your ElevenLabs API key in Settings to hear verbal feedback.",
-            });
-          }
+          // For now, we'll just use a sample response since we don't have a real API call
+          // In a real app, you would send the audio to your backend for analysis
+          setTimeout(() => {
+            completeProcessing();
+            setCoachingResponse("Your pitch demonstrated good product knowledge, but could benefit from more customer-focused benefits. Try connecting features to customer needs and include a stronger call to action. Remember to pause between key points to let information sink in.");
+          }, 2000);
         } catch (error) {
           console.error("Error processing speech:", error);
           toast({
@@ -88,7 +83,6 @@ export function RealTimeCoaching() {
             title: "Processing Error",
             description: "Could not process your speech. Please try again.",
           });
-        } finally {
           completeProcessing();
         }
       }
@@ -105,8 +99,7 @@ export function RealTimeCoaching() {
         }
       }
       
-      // Clear previous coaching response
-      setCoachingResponse("");
+      // Clear previous coaching response and errors
       setAudioPlaybackError(null);
       
       // Start recording

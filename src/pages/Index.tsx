@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +33,6 @@ const Index = () => {
   const { toast } = useToast();
   const [showRealTimeCoaching, setShowRealTimeCoaching] = useState(false);
   const [showPlaybookGenerator, setShowPlaybookGenerator] = useState(false);
-  const [generatedPlaybook, setGeneratedPlaybook] = useState<string | null>(null);
 
   const handleScenarioChange = (scenario: Scenario) => {
     setSelectedScenario(scenario);
@@ -47,10 +46,6 @@ const Index = () => {
   const togglePlaybookGenerator = () => {
     setShowPlaybookGenerator(!showPlaybookGenerator);
     setShowRealTimeCoaching(false);
-  };
-
-  const handlePlaybookGenerated = (playbook: string) => {
-    setGeneratedPlaybook(playbook);
   };
 
   return (
@@ -82,7 +77,7 @@ const Index = () => {
           </p>
 
           {showPlaybookGenerator && (
-            <PlaybookGenerator onPlaybookGenerated={handlePlaybookGenerated} />
+            <PlaybookGenerator onPlaybookGenerated={() => {}} />
           )}
 
           {showRealTimeCoaching ? (
@@ -112,6 +107,6 @@ const Index = () => {
       </main>
     </div>
   );
-};
+}
 
 export default Index;
