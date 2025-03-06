@@ -1,5 +1,5 @@
 
-import { Home, BookOpen, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils";
 
 const menuItems = [
   { icon: Home, label: "Home", path: "/" },
-  { icon: BookOpen, label: "Playbook", path: "/playbook" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
