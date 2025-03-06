@@ -13,7 +13,7 @@ import { SpeakingIndicator } from "./SpeakingIndicator";
 import { AudioErrorMessage } from "./AudioErrorMessage";
 
 export function RealTimeCoaching() {
-  const [coachingResponse, setCoachingResponse] = useState("Your pitch demonstrated good product knowledge, but could benefit from more customer-focused benefits. Try connecting features to customer needs and include a stronger call to action. Remember to pause between key points to let information sink in.");
+  const [coachingResponse, setCoachingResponse] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -45,17 +45,9 @@ export function RealTimeCoaching() {
     retryAudioPlayback
   } = useAudioPlayback();
 
-  // Handle navigation to settings page
   const navigateToSettings = () => {
     navigate("/settings");
   };
-
-  // Auto-play audio feedback when a coaching response is received
-  useEffect(() => {
-    if (coachingResponse) {
-      playFeedback(coachingResponse, apiKeyValid, voiceId, modelId, getVoiceUrl);
-    }
-  }, [coachingResponse, apiKeyValid]);
 
   const toggleRecording = async () => {
     if (isRecording) {
@@ -70,37 +62,41 @@ export function RealTimeCoaching() {
       
       if (audioBlob) {
         try {
-          // For now, we'll just use a sample response since we don't have a real API call
-          // In a real app, you would send the audio to your backend for analysis
-          setTimeout(() => {
-            completeProcessing();
-            setCoachingResponse("Your pitch demonstrated good product knowledge, but could benefit from more customer-focused benefits. Try connecting features to customer needs and include a stronger call to action. Remember to pause between key points to let information sink in.");
-          }, 2000);
-        } catch (error) {
+          // For demo purposes, using a sample response
+          // In production, you would send the audio to your backend
+          completeProcessing();
+          const mockResponse = "Your pitch demonstrated good product knowledge. Try connecting features to customer needs and include a stronger call to action. Let's work on making it more customer-focused.";
+          setCoachingResponse(mockResponse);
+          
+          // Attempt to play audio feedback
+          await playFeedback(mockResponse, apiKeyValid, voiceId, modelId, getVoiceUrl);
+        } catch (error: any) {
           console.error("Error processing speech:", error);
+          setAudioPlaybackError(error.message || "Error processing your speech");
+          completeProcessing();
+          
           toast({
             variant: "destructive",
             title: "Processing Error",
             description: "Could not process your speech. Please try again.",
           });
-          completeProcessing();
         }
       }
     } else {
       // First check if API key is valid
-      if (!apiKeyValid) {
-        const isValid = await checkApiKey();
-        if (!isValid) {
-          toast({
-            variant: "default",
-            title: "API Key Missing",
-            description: "Please add your ElevenLabs API key in Settings for voice coaching.",
-          });
-        }
+      const isValid = await checkApiKey();
+      if (!isValid) {
+        toast({
+          variant: "default",
+          title: "API Key Required",
+          description: "Please add your ElevenLabs API key in Settings for voice coaching.",
+        });
+        return;
       }
       
       // Clear previous coaching response and errors
       setAudioPlaybackError(null);
+      setCoachingResponse("");
       
       // Start recording
       const success = await startRecording();
@@ -113,9 +109,16 @@ export function RealTimeCoaching() {
     }
   };
 
-  // Retry audio playback if there was an error
-  const handleRetryAudioPlayback = () => {
-    retryAudioPlayback(coachingResponse, apiKeyValid, voiceId, modelId, getVoiceUrl);
+  const handleRetryAudioPlayback = async () => {
+    if (coachingResponse) {
+      try {
+        await retryAudioPlayback(coachingResponse, apiKeyValid, voiceId, modelId, getVoiceUrl);
+        setAudioPlaybackError(null);
+      } catch (error: any) {
+        console.error("Error retrying audio playback:", error);
+        setAudioPlaybackError(error.message || "Failed to play audio feedback");
+      }
+    }
   };
 
   return (
@@ -125,7 +128,7 @@ export function RealTimeCoaching() {
         Start speaking and get instant coaching feedback on your sales pitch!
       </p>
       
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div className="mt-4">
         <VoiceSelector 
           selectedVoiceId={voiceId} 
           onVoiceChange={setVoiceId} 
@@ -137,7 +140,7 @@ export function RealTimeCoaching() {
         isRecording={isRecording}
         isProcessing={isProcessing}
         isSpeaking={isSpeaking}
-        apiKeyValid={true} // Allow recording even without API key
+        apiKeyValid={true}
         onToggleRecording={toggleRecording}
       />
       

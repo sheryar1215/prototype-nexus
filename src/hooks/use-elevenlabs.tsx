@@ -5,14 +5,12 @@ import { useToast } from "@/hooks/use-toast";
 export function useElevenLabs() {
   const [apiKeyValid, setApiKeyValid] = useState(false);
   const [isCheckingApiKey, setIsCheckingApiKey] = useState(false);
-  const [selectedVoiceId, setSelectedVoiceId] = useState("21m00Tcm4TlvDq8ikWAM"); // Default voice ID
+  const [selectedVoiceId, setSelectedVoiceId] = useState("EXAVITQu4vr4xnSDxMaL"); // Sarah's voice ID
   const { toast } = useToast();
   
   useEffect(() => {
-    // Check if API key is valid on mount
     checkApiKey();
     
-    // Get saved voice ID from localStorage
     const savedVoiceId = localStorage.getItem("ELEVENLABS_VOICE_ID");
     if (savedVoiceId) {
       setSelectedVoiceId(savedVoiceId);
@@ -24,8 +22,6 @@ export function useElevenLabs() {
     
     try {
       setIsCheckingApiKey(true);
-      
-      // Get API key from localStorage
       const apiKey = localStorage.getItem("ELEVENLABS_API_KEY");
       
       if (!apiKey) {
@@ -34,7 +30,6 @@ export function useElevenLabs() {
         return false;
       }
       
-      // Validate API key with a simple request
       const response = await fetch("https://api.elevenlabs.io/v1/user", {
         headers: {
           "Accept": "application/json",
@@ -48,26 +43,28 @@ export function useElevenLabs() {
           : `ElevenLabs API error (${response.status})`);
       }
       
+      // Parse response to check subscription status
+      const data = await response.json();
+      if (data.subscription?.status === "free") {
+        toast({
+          title: "Free Tier Limitations",
+          description: "You're using a free ElevenLabs account. Some features may be limited.",
+        });
+      }
+      
       setApiKeyValid(true);
       setIsCheckingApiKey(false);
-      
-      // Show success toast when API key is valid
-      toast({
-        title: "Voice Coaching Ready",
-        description: "ElevenLabs voice is connected. The coach will speak to you.",
-      });
       return true;
     } catch (error: any) {
       console.error("API Key validation failed:", error);
       setApiKeyValid(false);
       setIsCheckingApiKey(false);
       
-      // Only show toast if this wasn't an initial check
       if (localStorage.getItem("ELEVENLABS_API_KEY")) {
         toast({
           variant: "destructive",
           title: "Voice Feedback Unavailable",
-          description: error.message || "Please add a valid ElevenLabs API key in Settings for voice feedback",
+          description: error.message || "Please check your ElevenLabs API key in Settings",
         });
       }
       return false;
@@ -76,7 +73,6 @@ export function useElevenLabs() {
 
   const handleVoiceChange = (voiceId: string) => {
     setSelectedVoiceId(voiceId);
-    // Save the selected voice to localStorage for persistence
     localStorage.setItem("ELEVENLABS_VOICE_ID", voiceId);
     
     toast({
